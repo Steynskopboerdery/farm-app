@@ -20,16 +20,13 @@ You need [Node.js](https://nodejs.org) version 22 or newer.
 
 ```bash
 npm install
-cp .env.example .env.local     # then put in the two Supabase values (see below)
 npm run dev                    # opens on http://localhost:3000
 npm test                       # runs the calculation tests
 ```
 
-The two values in `.env.local` are in Supabase under **Project Settings → API Keys**:
-- `VITE_SUPABASE_URL` is the Project URL.
-- `VITE_SUPABASE_PUBLISHABLE_KEY` is the *publishable* key.
+The app connects to the farm's Supabase project using the public address and *publishable* key in `src/lib/config.ts`. These are not secrets: every browser receives them, and the database security rules protect the data. To use a different project, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in `.env.local` (copy `.env.example`) or in Netlify.
 
-The publishable key is safe in an app. The **secret / service_role** key must never be put in the app or the repo.
+The **secret / service_role** key must never be put in the app or the repo.
 
 ## Database
 
@@ -61,9 +58,8 @@ In the Supabase dashboard for **farm-app**:
 1. Sign up at [netlify.com](https://app.netlify.com/signup) with your GitHub account.
 2. **Add new site → Import an existing project → GitHub →** choose `farm-app`.
 3. The build settings fill in from `netlify.toml`: build command `npm run build`, publish folder `dist`.
-4. Under **Environment variables**, add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (same values as above).
-5. Click **Deploy**. You get a link like `https://something.netlify.app`. You can rename it under **Site configuration → Change site name**.
-6. Put that link into Supabase (step 1 of the login settings above).
+4. Click **Deploy**. No environment variables are needed. You get a link like `https://something.netlify.app`. You can rename it under **Site configuration → Change site name**.
+5. Put that link into Supabase (step 1 of the login settings above).
 
 After that, every change saved to GitHub updates the app automatically.
 
