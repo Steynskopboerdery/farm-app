@@ -1,5 +1,9 @@
 # Farm Manager
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/382ffec5-a892-4478-9f96-8d1d7be4de0e/deploy-status)](https://app.netlify.com/projects/farmplans/deploys)
+
+Live app: https://farmplans.netlify.app
+
 A phone-first farm app for a mixed crop and livestock farm near Swellendam. It covers fields and grazing camps on a satellite map, crops, animals, sales and invoices.
 
 - **App:** React + TypeScript (Vite). Installable on a phone ("Add to Home Screen") and opens offline.
@@ -47,8 +51,8 @@ Records are never really deleted from the app. "Remove" hides them, and every ch
 In the Supabase dashboard for **farm-app**:
 
 1. **Authentication → URL Configuration**
-   - **Site URL:** your Netlify link, for example `https://your-farm.netlify.app`.
-   - **Redirect URLs:** add `https://your-farm.netlify.app/**` and `http://localhost:3000/**`.
+   - **Site URL:** your Netlify link, for example `https://farmplans.netlify.app`.
+   - **Redirect URLs:** add `https://farmplans.netlify.app/**` and `http://localhost:3000/**`.
 2. **Authentication → Emails → Magic Link** template: add the line `Your code: {{ .Token }}` so the email also contains a 6-digit code. On an iPhone, the installed app can't open email links, so you type the code instead.
 3. **Email sending limits:** Supabase's built-in email service sends only a few emails per hour, and only to people on your Supabase team. That's fine for you alone. Before workers log in, connect a free email service (for example Resend) under **Authentication → Emails → SMTP Settings**.
 
