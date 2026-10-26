@@ -1,0 +1,8 @@
+-- Sample data is loaded per farm from inside the app:
+--   Settings → Sample data → "Load sample data"
+-- It calls public.load_sample_data(farm_id), defined in migrations/*_farm_functions.sql.
+-- Every sample row is marked is_sample = true and labelled SAMPLE, and
+-- "Remove all sample data" in Settings deletes only those rows.
+--
+-- To load it by hand in the Supabase SQL editor (as the farm owner), use:
+--   select public.load_sample_data('<your farm id>');
