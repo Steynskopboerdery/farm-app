@@ -1,0 +1,122 @@
+# Farm Manager
+
+A phone-first farm app for a mixed crop and livestock farm near Swellendam. It covers fields and grazing camps on a satellite map, crops, animals, sales and invoices.
+
+- **App:** React + TypeScript (Vite). Installable on a phone ("Add to Home Screen") and opens offline.
+- **Database, login and files:** Supabase (Postgres with Row Level Security). Each farm only ever sees its own data.
+- **Map:** Leaflet + Geoman drawing tool + Esri World Imagery satellite photos. Free, with no billing account.
+- **Hosting:** Netlify free plan.
+- **Languages:** English and Afrikaans. Switch on the login screen or in Settings.
+
+---
+
+## Run it on a computer
+
+You need [Node.js](https://nodejs.org) version 22 or newer.
+
+```bash
+npm install
+cp .env.example .env.local     # then put in the two Supabase values (see below)
+npm run dev                    # opens on http://localhost:3000
+npm test                       # runs the calculation tests
+```
+
+The two values in `.env.local` are in Supabase under **Project Settings → API Keys**:
+- `VITE_SUPABASE_URL` is the Project URL.
+- `VITE_SUPABASE_PUBLISHABLE_KEY` is the *publishable* key.
+
+The publishable key is safe in an app. The **secret / service_role** key must never be put in the app or the repo.
+
+## Database
+
+The database setup lives in `supabase/migrations/` and has already been applied to the Supabase project `farm-app`. If you ever need a fresh project, run the files in order in the Supabase SQL editor, or use `supabase db push` with the Supabase CLI.
+
+**Who can do what**
+
+| | Owner (farmer) | Worker |
+|---|---|---|
+| Fields, camps, crops, animals | see and change | see only |
+| Tasks | create, change, delete | see and tick off |
+| Sales, invoices, costs, customers, bank details | yes | no |
+| Change history | see | no |
+
+Records are never really deleted from the app. "Remove" hides them, and every change is kept in a change history (who, what, when).
+
+## One-time Supabase login settings (do these once)
+
+In the Supabase dashboard for **farm-app**:
+
+1. **Authentication → URL Configuration**
+   - **Site URL:** your Netlify link, for example `https://your-farm.netlify.app`.
+   - **Redirect URLs:** add `https://your-farm.netlify.app/**` and `http://localhost:3000/**`.
+2. **Authentication → Emails → Magic Link** template: add the line `Your code: {{ .Token }}` so the email also contains a 6-digit code. On an iPhone, the installed app can't open email links, so you type the code instead.
+3. **Email sending limits:** Supabase's built-in email service sends only a few emails per hour, and only to people on your Supabase team. That's fine for you alone. Before workers log in, connect a free email service (for example Resend) under **Authentication → Emails → SMTP Settings**.
+
+## Put it online (Netlify, free)
+
+1. Sign up at [netlify.com](https://app.netlify.com/signup) with your GitHub account.
+2. **Add new site → Import an existing project → GitHub →** choose `farm-app`.
+3. The build settings fill in from `netlify.toml`: build command `npm run build`, publish folder `dist`.
+4. Under **Environment variables**, add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (same values as above).
+5. Click **Deploy**. You get a link like `https://something.netlify.app`. You can rename it under **Site configuration → Change site name**.
+6. Put that link into Supabase (step 1 of the login settings above).
+
+After that, every change saved to GitHub updates the app automatically.
+
+## Install on a phone
+
+- **Android (Chrome):** open the link, tap the **⋮** menu, then **Add to Home screen** (or **Install app**).
+- **iPhone (Safari):** open the link, tap the **Share** button, then **Add to Home Screen**.
+
+It then opens like a normal app, full screen, with its own icon.
+
+## Map imagery: attribution and terms
+
+- The satellite photos come from **Esri World Imagery**. The credit "Esri, Maxar, Earthstar Geographics" must stay visible on the map, and it does.
+- Esri's free public tiles are fine for light use like a single farm. The app doesn't store tiles for offline use, because Esri's terms don't allow that. Your phone's normal browser cache still keeps recently viewed areas.
+- Satellite photos can be 1–3 years old.
+- If Esri ever requires a key, the fallback is MapTiler's free plan (about 100 000 tiles a month, with a free key).
+- Google satellite images are not used: Google's terms don't allow them outside Google's own map tools.
+
+## Calculations and tests
+
+Calculations live in `src/lib/calc/`, and each file has a test next to it. Run them with `npm test`.
+
+| File | What it does |
+|---|---|
+| `area.ts` | Hectares from a drawn outline (allows for the curve of the earth) |
+| `dates.ts` | Lambing / calving dates: joining date + pregnancy days (sheep 147, cattle 283, editable) |
+| `yield.ts` | Tons per hectare; planned income, cost and margin per field |
+| `invoice.ts` | Invoice line totals, VAT (15%, optional) and total in Rand; sequential invoice numbers |
+| `withholding.ts` | Warns when a spray's withholding period runs past the planned harvest date |
+
+## Folder layout
+
+```
+src/
+  auth/         login (email link or 6-digit code)
+  farm/         which farm you're on, and your role
+  features/
+    dashboard/  home screen
+    map/        satellite map, drawing and editing outlines
+    land/       fields and camps: list, details, change history
+    settings/   farm, invoices, bank, seasons, pregnancy days, people, sample data
+  lib/          database connection, calculations, text (English/Afrikaans), formatting
+supabase/
+  migrations/   database tables, security rules, change history, functions
+  seed.sql      how sample data is loaded
+```
+
+## What each phase added
+
+### Phase 1: setup, login, map (done)
+- Database for the whole farm (all tables for later phases too), with each farm's data kept private and a change history.
+- Login by email link or 6-digit code. Owner and worker roles; invite people by email.
+- Farm settings: business details, VAT, invoice numbering, bank details, seasons with a notes box per year, pregnancy lengths.
+- Fields and camps: list, add, edit, remove (hidden, history kept).
+- Satellite map: see all outlines coloured by crop (camps dashed green), tap for details, draw / edit / remove outlines. Hectares are calculated from the outline. "My location" button.
+- Sample data (labelled SAMPLE), loaded or removed with one button.
+- English / Afrikaans switch, installable on a phone, opens offline.
+
+### Phase 2: crop records (next)
+Plantings, fertiliser, sprays (with withholding warnings), harvests, and field history pages.

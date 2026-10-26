@@ -1,0 +1,398 @@
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+
+export type Lang = 'en' | 'af'
+
+const en = {
+  appName: 'Farm Manager',
+  loading: 'Loading…',
+  save: 'Save',
+  saving: 'Saving…',
+  saved: 'Saved',
+  cancel: 'Cancel',
+  delete: 'Delete',
+  edit: 'Edit',
+  add: 'Add',
+  back: 'Back',
+  close: 'Close',
+  yes: 'Yes',
+  no: 'No',
+  name: 'Name',
+  notes: 'Notes',
+  hectares: 'Hectares',
+  total: 'Total',
+  sample: 'SAMPLE',
+  error: 'Something went wrong',
+  offline: 'You are offline. Showing the last saved information.',
+
+  // nav
+  navHome: 'Home',
+  navMap: 'Map',
+  navLand: 'Fields',
+  navSettings: 'Settings',
+
+  // login
+  loginTitle: 'Log in',
+  loginIntro: 'Enter your email address. We will email you a login link and a 6-digit code.',
+  email: 'Email address',
+  sendLink: 'Email me a login link',
+  sending: 'Sending…',
+  checkEmail: 'Check your email',
+  checkEmailBody: 'Tap the link in the email, or type the 6-digit code here. (If you installed the app on an iPhone, use the code.)',
+  code: '6-digit code',
+  verifyCode: 'Log in with code',
+  useOtherEmail: 'Use a different email',
+  signOut: 'Log out',
+
+  // farm setup
+  createFarmTitle: 'Set up your farm',
+  createFarmIntro: 'You are logged in. Give your farm a name to begin. If a farmer invited you, ask them to add your email address first.',
+  farmName: 'Farm name',
+  farmLocation: 'Location (e.g. near Swellendam)',
+  createFarm: 'Create farm',
+
+  // dashboard
+  dashTitle: 'Today',
+  cropland: 'Cropland',
+  grazing: 'Grazing camps',
+  fieldsCount: 'Fields',
+  campsCount: 'Camps',
+  animals: 'Animals',
+  sheep: 'Sheep',
+  cattle: 'Cattle',
+  tasksDue: 'Tasks',
+  noTasks: 'No open tasks.',
+  markDone: 'Done',
+  overdue: 'Overdue',
+  cropOverview: 'Crops this season',
+  upcoming: 'Coming up',
+  lambing: 'Lambing',
+  calving: 'Calving',
+  shearing: 'Shearing',
+  nothingPlanned: 'Nothing planned yet.',
+  sampleBanner: 'This farm has SAMPLE data loaded. Replace it with your own in Settings.',
+  noFieldsYet: 'No fields yet. Add your fields, or load the sample data in Settings.',
+
+  // map
+  mapDraw: 'Draw outline',
+  mapDrawHelp: 'Tap the corners of the field one by one. Tap the first corner again to finish.',
+  mapEditHelp: 'Drag the white dots to move corners. Tap Save when done.',
+  mapLocate: 'My location',
+  mapFitAll: 'Show all',
+  mapAssignTitle: 'What did you draw?',
+  mapAssignArea: 'Area',
+  mapNewField: 'New field',
+  mapNewCamp: 'New grazing camp',
+  mapExisting: 'Existing field or camp without an outline',
+  mapChoose: 'Choose…',
+  mapEditOutline: 'Edit outline',
+  mapDeleteOutline: 'Remove outline',
+  mapDeleteConfirm: 'Remove the outline of {name}? The field and its records stay.',
+  mapOpenDetails: 'Open details',
+  mapNoOutline: 'Not on map yet',
+  mapAreaFromOutline: 'Area from outline',
+  mapAttribution: 'Satellite images may be 1–3 years old.',
+  noCrop: 'No crop',
+
+  // land
+  landTitle: 'Fields and camps',
+  fields: 'Fields',
+  camps: 'Camps',
+  field: 'Field',
+  camp: 'Camp',
+  addField: 'Add field',
+  addCamp: 'Add camp',
+  soilType: 'Soil type',
+  pastureType: 'Pasture type',
+  currentCrop: 'Current crop',
+  plantedOn: 'Planted',
+  expectedHarvest: 'Expected harvest',
+  outline: 'Outline on map',
+  outlineDrawn: 'Drawn ({ha})',
+  outlineMissing: 'Not drawn yet',
+  showOnMap: 'Show on map',
+  drawOnMap: 'Draw on map',
+  history: 'Change history',
+  historyEmpty: 'No changes recorded yet.',
+  created: 'Created',
+  updated: 'Changed',
+  deleted: 'Deleted',
+  by: 'by',
+  removeField: 'Remove this field',
+  removeCamp: 'Remove this camp',
+  removeConfirm: 'Remove {name}? It will be hidden but its history is kept.',
+  hectaresHelp: 'Filled in automatically when you draw the outline. You can type it in too.',
+  comingPhase2: 'Planting, fertiliser, spray and harvest records arrive in Phase 2.',
+
+  // settings
+  settingsTitle: 'Settings',
+  language: 'Language',
+  farmDetails: 'Farm',
+  totalHectares: 'Total farm size (ha)',
+  business: 'Business and invoices',
+  legalName: 'Business name on invoices',
+  address: 'Address',
+  phone: 'Phone',
+  vatRegistered: 'VAT registered',
+  vatNumber: 'VAT number',
+  vatRate: 'VAT rate (%)',
+  invoicePrefix: 'Invoice number starts with',
+  nextInvoiceNumber: 'Next invoice number',
+  paymentTerms: 'Payment due after (days)',
+  bank: 'Banking details',
+  bankName: 'Bank',
+  bankAccountName: 'Account holder',
+  bankAccountNumber: 'Account number',
+  bankBranchCode: 'Branch code',
+  bankAccountType: 'Account type',
+  invoiceFooter: 'Note at bottom of invoice',
+  seasons: 'Seasons',
+  seasonsHelp: 'One season per year. Write anything special that happened (drought, late rain, pests).',
+  year: 'Year',
+  label: 'Label',
+  addSeason: 'Add season',
+  gestation: 'Pregnancy length (days)',
+  gestationHelp: 'Used to calculate lambing and calving dates. Change if your vet advises.',
+  team: 'People',
+  teamHelp: 'Workers can see fields, animals and tasks, and tick tasks off. They cannot see money or bank details, or change records.',
+  inviteEmail: 'Email of person to invite',
+  role: 'Role',
+  owner: 'Owner (full access)',
+  worker: 'Worker (view and tasks)',
+  invite: 'Invite',
+  invited: 'Invited, not logged in yet',
+  you: 'you',
+  sampleData: 'Sample data',
+  sampleHelp: 'Load example fields, camps and animals to try the app. Everything is marked SAMPLE and can be removed in one go.',
+  loadSample: 'Load sample data',
+  removeSample: 'Remove all sample data',
+  removeSampleConfirm: 'Remove all SAMPLE fields, camps, animals and tasks? Your own records are kept.',
+  workerNote: 'You are logged in as a worker. Ask the farmer if you need more access.',
+}
+
+export type DictKey = keyof typeof en
+
+const af: Record<DictKey, string> = {
+  appName: 'Plaasbestuur',
+  loading: 'Laai…',
+  save: 'Stoor',
+  saving: 'Stoor…',
+  saved: 'Gestoor',
+  cancel: 'Kanselleer',
+  delete: 'Verwyder',
+  edit: 'Wysig',
+  add: 'Voeg by',
+  back: 'Terug',
+  close: 'Maak toe',
+  yes: 'Ja',
+  no: 'Nee',
+  name: 'Naam',
+  notes: 'Notas',
+  hectares: 'Hektaar',
+  total: 'Totaal',
+  sample: 'VOORBEELD',
+  error: 'Iets het verkeerd geloop',
+  offline: 'Jy is van lyn af. Die laaste gestoorde inligting word gewys.',
+
+  navHome: 'Tuis',
+  navMap: 'Kaart',
+  navLand: 'Lande',
+  navSettings: 'Instellings',
+
+  loginTitle: 'Teken in',
+  loginIntro: 'Tik jou e-posadres. Ons stuur vir jou ’n skakel en ’n 6-syfer-kode.',
+  email: 'E-posadres',
+  sendLink: 'Stuur vir my ’n skakel',
+  sending: 'Stuur…',
+  checkEmail: 'Kyk in jou e-pos',
+  checkEmailBody: 'Tik op die skakel in die e-pos, of tik die 6-syfer-kode hier in. (Gebruik die kode as die app op ’n iPhone geïnstalleer is.)',
+  code: '6-syfer-kode',
+  verifyCode: 'Teken in met kode',
+  useOtherEmail: 'Gebruik ’n ander e-pos',
+  signOut: 'Teken uit',
+
+  createFarmTitle: 'Stel jou plaas op',
+  createFarmIntro: 'Jy is ingeteken. Gee jou plaas ’n naam om te begin. As ’n boer jou genooi het, vra hulle om eers jou e-posadres by te voeg.',
+  farmName: 'Plaasnaam',
+  farmLocation: 'Ligging (bv. naby Swellendam)',
+  createFarm: 'Skep plaas',
+
+  dashTitle: 'Vandag',
+  cropland: 'Saailande',
+  grazing: 'Weikampe',
+  fieldsCount: 'Lande',
+  campsCount: 'Kampe',
+  animals: 'Diere',
+  sheep: 'Skape',
+  cattle: 'Beeste',
+  tasksDue: 'Take',
+  noTasks: 'Geen oop take nie.',
+  markDone: 'Klaar',
+  overdue: 'Agterstallig',
+  cropOverview: 'Gewasse hierdie seisoen',
+  upcoming: 'Wat kom',
+  lambing: 'Lammery',
+  calving: 'Kalwing',
+  shearing: 'Skeer',
+  nothingPlanned: 'Nog niks beplan nie.',
+  sampleBanner: 'Hierdie plaas het VOORBEELD-data. Vervang dit met jou eie onder Instellings.',
+  noFieldsYet: 'Nog geen lande nie. Voeg jou lande by, of laai die voorbeelddata onder Instellings.',
+
+  mapDraw: 'Teken grens',
+  mapDrawHelp: 'Tik die hoeke van die land een vir een. Tik weer op die eerste hoek om klaar te maak.',
+  mapEditHelp: 'Sleep die wit kolletjies om hoeke te skuif. Tik Stoor as jy klaar is.',
+  mapLocate: 'My ligging',
+  mapFitAll: 'Wys alles',
+  mapAssignTitle: 'Wat het jy geteken?',
+  mapAssignArea: 'Oppervlakte',
+  mapNewField: 'Nuwe land',
+  mapNewCamp: 'Nuwe weikamp',
+  mapExisting: 'Bestaande land of kamp sonder ’n grens',
+  mapChoose: 'Kies…',
+  mapEditOutline: 'Wysig grens',
+  mapDeleteOutline: 'Verwyder grens',
+  mapDeleteConfirm: 'Verwyder die grens van {name}? Die land en sy rekords bly.',
+  mapOpenDetails: 'Maak besonderhede oop',
+  mapNoOutline: 'Nog nie op kaart nie',
+  mapAreaFromOutline: 'Oppervlakte van grens',
+  mapAttribution: 'Satellietbeelde kan 1–3 jaar oud wees.',
+  noCrop: 'Geen gewas',
+
+  landTitle: 'Lande en kampe',
+  fields: 'Lande',
+  camps: 'Kampe',
+  field: 'Land',
+  camp: 'Kamp',
+  addField: 'Voeg land by',
+  addCamp: 'Voeg kamp by',
+  soilType: 'Grondsoort',
+  pastureType: 'Weidingsoort',
+  currentCrop: 'Huidige gewas',
+  plantedOn: 'Geplant',
+  expectedHarvest: 'Verwagte oes',
+  outline: 'Grens op kaart',
+  outlineDrawn: 'Geteken ({ha})',
+  outlineMissing: 'Nog nie geteken nie',
+  showOnMap: 'Wys op kaart',
+  drawOnMap: 'Teken op kaart',
+  history: 'Veranderingsgeskiedenis',
+  historyEmpty: 'Nog geen veranderinge nie.',
+  created: 'Geskep',
+  updated: 'Verander',
+  deleted: 'Verwyder',
+  by: 'deur',
+  removeField: 'Verwyder hierdie land',
+  removeCamp: 'Verwyder hierdie kamp',
+  removeConfirm: 'Verwyder {name}? Dit word versteek, maar die geskiedenis bly.',
+  hectaresHelp: 'Word self ingevul as jy die grens teken. Jy kan dit ook intik.',
+  comingPhase2: 'Plant-, kunsmis-, spuit- en oesrekords kom in Fase 2.',
+
+  settingsTitle: 'Instellings',
+  language: 'Taal',
+  farmDetails: 'Plaas',
+  totalHectares: 'Totale plaasgrootte (ha)',
+  business: 'Besigheid en fakture',
+  legalName: 'Besigheidsnaam op fakture',
+  address: 'Adres',
+  phone: 'Telefoon',
+  vatRegistered: 'BTW-geregistreer',
+  vatNumber: 'BTW-nommer',
+  vatRate: 'BTW-koers (%)',
+  invoicePrefix: 'Faktuurnommer begin met',
+  nextInvoiceNumber: 'Volgende faktuurnommer',
+  paymentTerms: 'Betaling verskuldig na (dae)',
+  bank: 'Bankbesonderhede',
+  bankName: 'Bank',
+  bankAccountName: 'Rekeninghouer',
+  bankAccountNumber: 'Rekeningnommer',
+  bankBranchCode: 'Takkode',
+  bankAccountType: 'Rekeningtipe',
+  invoiceFooter: 'Nota onderaan faktuur',
+  seasons: 'Seisoene',
+  seasonsHelp: 'Een seisoen per jaar. Skryf enigiets spesiaals neer (droogte, laat reën, plae).',
+  year: 'Jaar',
+  label: 'Beskrywing',
+  addSeason: 'Voeg seisoen by',
+  gestation: 'Dragtigheid (dae)',
+  gestationHelp: 'Word gebruik om lam- en kalfdatums te bereken. Verander as jou veearts so aanbeveel.',
+  team: 'Mense',
+  teamHelp: 'Werkers kan lande, diere en take sien en take afmerk. Hulle kan nie geld of bankbesonderhede sien of rekords verander nie.',
+  inviteEmail: 'E-pos van persoon om te nooi',
+  role: 'Rol',
+  owner: 'Eienaar (volle toegang)',
+  worker: 'Werker (kyk en take)',
+  invite: 'Nooi',
+  invited: 'Genooi, nog nie ingeteken nie',
+  you: 'jy',
+  sampleData: 'Voorbeelddata',
+  sampleHelp: 'Laai voorbeeldlande, -kampe en -diere om die app te probeer. Alles is as VOORBEELD gemerk en kan in een slag verwyder word.',
+  loadSample: 'Laai voorbeelddata',
+  removeSample: 'Verwyder alle voorbeelddata',
+  removeSampleConfirm: 'Verwyder alle VOORBEELD-lande, -kampe, -diere en -take? Jou eie rekords bly.',
+  workerNote: 'Jy is as werker ingeteken. Vra die boer as jy meer toegang nodig het.',
+}
+
+const dicts: Record<Lang, Record<DictKey, string>> = { en, af }
+
+// Crop and class names shown to the user. Stored values stay in English.
+const words: Record<Lang, Record<string, string>> = {
+  en: {},
+  af: {
+    wheat: 'koring', canola: 'canola', barley: 'gars', oats: 'hawer', lupins: 'lupiene',
+    ewes: 'ooie', rams: 'ramme', lambs: 'lammers', cows: 'koeie', bulls: 'bulle', calves: 'kalwers', heifers: 'verse',
+    sheep: 'skape', cattle: 'beeste',
+  },
+}
+
+interface I18n {
+  lang: Lang
+  setLang: (l: Lang) => void
+  t: (key: DictKey, vars?: Record<string, string | number>) => string
+  w: (word: string | null | undefined) => string
+}
+
+const Ctx = createContext<I18n | null>(null)
+const STORAGE_KEY = 'farm.lang'
+
+function readLang(): Lang {
+  try {
+    const v = localStorage.getItem(STORAGE_KEY)
+    return v === 'af' ? 'af' : 'en'
+  } catch {
+    return 'en'
+  }
+}
+
+export function I18nProvider({ children }: { children: ReactNode }) {
+  const [lang, setLangState] = useState<Lang>(readLang)
+
+  const setLang = useCallback((l: Lang) => {
+    setLangState(l)
+    try { localStorage.setItem(STORAGE_KEY, l) } catch { /* private mode */ }
+    document.documentElement.lang = l
+  }, [])
+
+  const value = useMemo<I18n>(() => ({
+    lang,
+    setLang,
+    t: (key, vars) => {
+      let s = dicts[lang][key] ?? en[key]
+      if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace(`{${k}}`, String(v))
+      return s
+    },
+    w: (word) => {
+      if (!word) return ''
+      const lower = word.toLowerCase()
+      const out = words[lang][lower] ?? word
+      return out.charAt(0).toUpperCase() + out.slice(1)
+    },
+  }), [lang, setLang])
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function useI18n(): I18n {
+  const v = useContext(Ctx)
+  if (!v) throw new Error('useI18n outside I18nProvider')
+  return v
+}
