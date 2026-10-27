@@ -176,3 +176,14 @@ supabase/
   yield per field and season, cost and profit per field (income estimated from planning prices), fertiliser and chemicals used,
   costs by kind (stacked per season), spending by supplier, animal numbers over time (rebuilt from the count history),
   lambing and calving percentage, and a budget from editable planning figures.
+
+### AI photo reader (done, needs an Anthropic API key)
+- **Receipts:** on a cost, add a receipt photo and tap "Read the receipt for me (AI)": supplier, date, total, VAT and kind of cost are filled in for checking.
+- **Old farm maps:** Fields → "Import from an old farm map": the AI lists the fields and camps with names, sizes (morgen converted to ha) and crops;
+  tick, edit and add them in one go. "Lay it over the satellite map" shows the photo see-through on the map (free, no AI) so outlines can be traced.
+- Runs in the Supabase function `read-photo` with Claude Opus 5.5 (structured JSON output; server-side fallback if a request is declined). Owners only.
+  About US$0.04–0.06 per photo, billed by Anthropic to prepaid credit.
+- **Setup:** create an API key at console.anthropic.com (Settings → API keys, add credit under Billing), then in Supabase:
+  Edge Functions → Secrets → add `ANTHROPIC_API_KEY`. Never put the key in the app or the repository.
+
+### Phase 6: grazing and minerals, offline entry, worker permissions (next)
