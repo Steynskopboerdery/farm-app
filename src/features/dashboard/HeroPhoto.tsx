@@ -12,7 +12,8 @@ const DEFAULT_PHOTO = '/hero-default.svg'
 const HOLD_MS = 600
 
 /** Shrinks a photo to at most 1600 px wide as JPEG, so it loads fast on farm signal. */
-async function shrink(file: File): Promise<Blob> {
+// eslint-disable-next-line react-refresh/only-export-components
+export async function shrink(file: File): Promise<Blob> {
   const bitmap = await createImageBitmap(file)
   const scale = Math.min(1, 1600 / bitmap.width)
   const canvas = document.createElement('canvas')

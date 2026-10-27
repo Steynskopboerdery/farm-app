@@ -5,8 +5,8 @@ import { useI18n, type DictKey } from '../../lib/i18n'
 const TILES: { to: string | null; label: DictKey; emoji: string; ownerOnly?: boolean; phase?: number }[] = [
   { to: '/sales', label: 'menuSales', emoji: '🧾', ownerOnly: true },
   { to: '/weather', label: 'weather', emoji: '⛅' },
-  { to: null, label: 'menuReports', emoji: '📊', phase: 5 },
-  { to: null, label: 'menuInventory', emoji: '📦', phase: 5 },
+  { to: '/reports', label: 'menuReports', emoji: '📊', ownerOnly: true },
+  { to: '/inventory', label: 'menuInventory', emoji: '📦' },
   { to: null, label: 'menuGrazing', emoji: '🌿', phase: 6 },
   { to: '/settings', label: 'navSettings', emoji: '⚙️' },
 ]

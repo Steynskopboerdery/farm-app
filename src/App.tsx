@@ -18,6 +18,11 @@ import { GroupPage } from './features/livestock/GroupPage'
 import { LivestockFormPage } from './features/livestock/LivestockForms'
 import { LivestockPage } from './features/livestock/LivestockPage'
 import { MenuPage } from './features/menu/MenuPage'
+import { InventoryPage } from './features/inventory/InventoryPage'
+import { ItemPage } from './features/inventory/ItemPage'
+
+// Charts are large, so the reports load only when opened.
+const ReportsPage = lazy(() => import('./features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })))
 import { CustomerFormPage } from './features/sales/CustomerFormPage'
 import { InvoiceFormPage } from './features/sales/InvoiceFormPage'
 import { InvoicePage } from './features/sales/InvoicePage'
@@ -63,6 +68,9 @@ export default function App() {
           <Route path="weather" element={<WeatherPage />} />
           <Route path="farms" element={<FarmChooser inApp />} />
           <Route path="menu" element={<MenuPage />} />
+          <Route path="reports" element={<Suspense fallback={<Loading />}><ReportsPage /></Suspense>} />
+          <Route path="inventory" element={<InventoryPage />} />
+          <Route path="inventory/item/:id" element={<ItemPage />} />
           <Route path="sales" element={<SalesPage />} />
           <Route path="sales/new" element={<InvoiceFormPage />} />
           <Route path="sales/invoice/:id" element={<InvoicePage />} />

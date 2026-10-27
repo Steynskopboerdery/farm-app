@@ -344,7 +344,9 @@ export type Database = {
           field_id: string | null
           group_id: string | null
           id: string
+          receipt_path: string | null
           season_id: string | null
+          supplier: string | null
           updated_at: string
         }
         Insert: {
@@ -359,7 +361,9 @@ export type Database = {
           field_id?: string | null
           group_id?: string | null
           id?: string
+          receipt_path?: string | null
           season_id?: string | null
+          supplier?: string | null
           updated_at?: string
         }
         Update: {
@@ -374,7 +378,9 @@ export type Database = {
           field_id?: string | null
           group_id?: string | null
           id?: string
+          receipt_path?: string | null
           season_id?: string | null
+          supplier?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -911,6 +917,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          reorder_level: number | null
           unit: string
           updated_at: string
         }
@@ -923,6 +930,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          reorder_level?: number | null
           unit: string
           updated_at?: string
         }
@@ -935,6 +943,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          reorder_level?: number | null
           unit?: string
           updated_at?: string
         }

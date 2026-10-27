@@ -168,4 +168,11 @@ supabase/
 - Draft → Sent → Paid. Record payments (full or part); the balance updates and the invoice turns Paid when covered. Drafts can be edited or deleted; sent invoices are locked.
 - Debtors: what each customer owes on sent invoices, days overdue, totals; "Unpaid invoices" card on the home screen for owners. Workers never see sales.
 
-### Phase 5: reports, inventory and costs (next)
+### Phase 5: reports, inventory and costs (done)
+- **Inventory & costs** (Menu): store items (seed, fertiliser, chemicals, feed, other) with stock on hand, stock received (with price) and used, low-stock warning level.
+  Fertiliser and spray records can take their product **from the store**; the amount used comes off the stock (and is given back if the record is removed).
+- **Costs** (owners): fuel, labour, machinery, other; supplier; optional field, animal group and season; **receipt photo or PDF** kept privately (`receipts` bucket).
+- **Reports** (owners), each a table with a "Show graph" button (Recharts, colour-blind-safe series order):
+  yield per field and season, cost and profit per field (income estimated from planning prices), fertiliser and chemicals used,
+  costs by kind (stacked per season), spending by supplier, animal numbers over time (rebuilt from the count history),
+  lambing and calving percentage, and a budget from editable planning figures.

@@ -417,3 +417,10 @@ details.card[open] > summary::after { content: '▴'; }
 .inv-table .num { text-align: right; white-space: nowrap; }
 .inv-bank { border: 1px solid #ccc; border-radius: 6px; padding: 10px 12px; }
 .inv-foot { text-align: center; color: #666; font-size: .72rem; }
+
+.receipt-pick { border: 1.5px dashed var(--field-line); border-radius: var(--radius-sm); padding: 12px 14px; background: #fafcf8; cursor: pointer; }
+.receipt-pick input[type='file'] { border: 0; padding: 4px 0; min-height: 0; background: none; }
+
+.report .table td .tiny { font-weight: 500; }
+.chart-box { width: 100%; min-height: 260px; }
+.cell-input { min-height: 40px; padding: 6px 8px; width: 96px; }

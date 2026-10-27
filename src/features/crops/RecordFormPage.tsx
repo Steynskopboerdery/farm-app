@@ -13,6 +13,8 @@ import { defaultSeasonId, ensureSeason, UNIT_FOR_RATE, useFieldRecords } from '.
 import { formatDate, formatHa, formatNumber } from '../../lib/format'
 import { useI18n, type DictKey } from '../../lib/i18n'
 import { useFields, useSeasons } from '../../lib/queries'
+import { useInventory } from '../../lib/inventory'
+import { stockOnHand } from '../../lib/calc/reports'
 import { supabase } from '../../lib/supabase'
 
 export type RecordType = 'planting' | 'fertiliser' | 'spray' | 'other' | 'harvest'
@@ -93,6 +95,10 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
   const ha = field.hectares
   const [f, setF] = useState<Form>(() => initialForm(type, existing, ha))
   const [totalTouched, setTotalTouched] = useState(!!existing)
+  const inventory = useInventory()
+  const [storeItem, setStoreItem] = useState<string>(String(existing?.inventory_item_id ?? ''))
+  const storeItems = (inventory.data?.items ?? []).filter((i) => (type === 'spray' ? ['chemical', 'other'] : ['fertiliser', 'other']).includes(i.category))
+  const stock = stockOnHand(inventory.data?.movements ?? [])
   const [seedTouched, setSeedTouched] = useState(!!existing)
   const thisYear = Number((f.date || todayIso()).slice(0, 4))
   const [season, setSeason] = useState<string>(initialSeason || `new:${thisYear}`)
@@ -152,9 +158,26 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
           total_amount: type === 'other' ? null : numOrNull(f.total), unit: type === 'other' ? null : unit,
           cost: numOrNull(f.cost), withholding_period_days: type === 'spray' ? numOrNull(f.whp) : null,
         }
-        ;({ error } = existing
-          ? await supabase.from('field_operations').update(row).eq('id', String(existing.id))
-          : await supabase.from('field_operations').insert(row))
+        const withItem = { ...row, inventory_item_id: type === 'other' ? null : storeItem || null }
+        let opId = existing ? String(existing.id) : ''
+        if (existing) {
+          ;({ error } = await supabase.from('field_operations').update(withItem).eq('id', opId))
+        } else {
+          const res = await supabase.from('field_operations').insert(withItem).select('id').single()
+          error = res.error
+          opId = res.data?.id ?? ''
+        }
+        if (error) throw error
+        // Keep the store in step: one "used" movement per field record, replaced when the record changes.
+        ;({ error } = await supabase.from('inventory_movements').update({ deleted_at: new Date().toISOString() }).eq('field_operation_id', opId).is('deleted_at', null))
+        if (error) throw error
+        const used = numOrNull(f.total)
+        if (storeItem && used && type !== 'other') {
+          ;({ error } = await supabase.from('inventory_movements').insert({
+            farm_id: farmId, item_id: storeItem, date: f.date, quantity: -Math.abs(used), field_operation_id: opId,
+            notes: `${field.name}${f.product ? ` · ${f.product}` : ''}`,
+          }))
+        }
       }
       if (error) throw error
       return seasonId
@@ -165,14 +188,20 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
       qc.invalidateQueries({ queryKey: ['seasons'] })
       qc.invalidateQueries({ queryKey: ['tasks'] })
       qc.invalidateQueries({ queryKey: ['audit_log'] })
+      qc.invalidateQueries({ queryKey: ['inventory'] })
       navigate(`/land/field/${field.id}?season=${seasonId}`)
     },
   })
 
   const remove = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from(TABLE(type)).update({ deleted_at: new Date().toISOString() }).eq('id', String(existing!.id))
+      const now = new Date().toISOString()
+      const { error } = await supabase.from(TABLE(type)).update({ deleted_at: now }).eq('id', String(existing!.id))
       if (error) throw error
+      if (TABLE(type) === 'field_operations') {
+        const { error: e2 } = await supabase.from('inventory_movements').update({ deleted_at: now }).eq('field_operation_id', String(existing!.id)).is('deleted_at', null)
+        if (e2) throw e2
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['field-records'] })
@@ -243,6 +272,19 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
         {(type === 'fertiliser' || type === 'spray' || type === 'other') && (
           <>
             {input('date', t('date'), { type: 'date' })}
+            {type !== 'other' && storeItems.length > 0 && isOwner && (
+              <label>{t('fromStore')}
+                <select value={storeItem} onChange={(e) => {
+                  const it = storeItems.find((i) => i.id === e.target.value)
+                  setStoreItem(e.target.value)
+                  if (it) setF((old) => ({ ...old, product: it.name, rateUnit: `${it.unit}/ha` in UNIT_FOR_RATE ? `${it.unit}/ha` : old.rateUnit }))
+                }}>
+                  <option value="">{t('notFromStore')}</option>
+                  {storeItems.map((i) => <option key={i.id} value={i.id}>{i.name} ({formatNumber(stock.get(i.id) ?? 0, 1, lang)} {i.unit})</option>)}
+                </select>
+                {storeItem && <span className="hint">{t('storeHint')}</span>}
+              </label>
+            )}
             {input('product', type === 'other' ? t('whatWasDone') : t('product'))}
             {type !== 'other' && (
               <>
