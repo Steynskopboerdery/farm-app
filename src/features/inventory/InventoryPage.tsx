@@ -12,6 +12,7 @@ import { useFields, useGroups, useSeasons } from '../../lib/queries'
 import { defaultSeasonId } from '../../lib/fieldRecords'
 import { supabase } from '../../lib/supabase'
 import { shrink } from '../dashboard/HeroPhoto'
+import { readPhoto, type ReceiptReading } from '../../lib/readPhoto'
 
 const CAT_EMOJI: Record<string, string> = { seed: '🌾', fertiliser: '🌱', chemical: '🧪', feed: '🌽', other: '📦' }
 
@@ -130,6 +131,25 @@ function Costs() {
   const seasons = useSeasons()
   const [f, setF] = useState({ category: 'fuel', date: todayIso(), amount: '', description: '', supplier: '', field: '', group: '', season: '' })
   const [receipt, setReceipt] = useState<File | null>(null)
+  const [reading, setReading] = useState<{ busy: boolean; note: string | null; error: string | null }>({ busy: false, note: null, error: null })
+
+  async function readReceipt() {
+    if (!receipt) return
+    setReading({ busy: true, note: null, error: null })
+    try {
+      const r = await readPhoto<ReceiptReading>('receipt', farmId, receipt)
+      // Seed, fertiliser, chemicals and feed are bought inputs; costs keep them under "other" with a clear description.
+      const cat = (['fuel', 'labour', 'machinery'] as string[]).includes(r.category) ? r.category : 'other'
+      setF((old) => ({
+        ...old, category: cat, amount: r.total_amount != null ? String(r.total_amount) : old.amount,
+        date: r.date && /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : old.date,
+        supplier: r.supplier ?? old.supplier, description: r.description || old.description,
+      }))
+      setReading({ busy: false, error: null, note: `${t('readDone')} (${t(`conf_${r.confidence}` as DictKey)})${r.vat_amount ? ` · VAT ${formatZar(r.vat_amount, lang)}` : ''}` })
+    } catch (e) {
+      setReading({ busy: false, note: null, error: e instanceof Error ? e.message : String(e) })
+    }
+  }
   const season = f.season || defaultSeasonId(seasons.data) || ''
   const fieldName = new Map((fields.data ?? []).map((x) => [x.id, x.name]))
   const groupName = new Map((groups.data ?? []).map((x) => [x.id, x.name]))
@@ -193,6 +213,11 @@ function Costs() {
           <input type="file" accept="image/*,application/pdf" onChange={(e) => setReceipt(e.target.files?.[0] ?? null)} />
           <span className="hint">{t('receiptHelp')}</span>
         </label>
+        {receipt && receipt.type.startsWith('image/') && (
+          <button type="button" className="btn lime" disabled={reading.busy} onClick={readReceipt}>{reading.busy ? t('reading') : `✨ ${t('readReceipt')}`}</button>
+        )}
+        {reading.note && <p className="pill-info small">✓ {reading.note}. {t('checkBeforeSave')}</p>}
+        {reading.error && <p className="error small">{reading.error}</p>}
         <div className="grid2">
           <label>{t('linkField')}
             <select value={f.field} onChange={(e) => setF({ ...f, field: e.target.value })}>

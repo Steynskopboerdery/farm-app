@@ -54,6 +54,7 @@ export function LandPage() {
         </ul>
       )}
       <ErrorText error={rows.error} />
+      {isOwner && <Link className="btn" to="/land/import">📷 {t('importMap')}</Link>}
       {isOwner && <AddForm kind={tab === 'fields' ? 'field' : 'camp'} />}
     </div>
   )

@@ -14,6 +14,7 @@ import { formatHa } from '../../lib/format'
 import { useI18n } from '../../lib/i18n'
 import { useCamps, useCurrentPlantings, useFields } from '../../lib/queries'
 import { supabase } from '../../lib/supabase'
+import { OVERLAY_KEY } from '../land/MapImportPage'
 
 type Kind = 'field' | 'camp'
 interface Area { kind: Kind; id: string; name: string; hectares: number | null; boundary: Boundary | null; isSample: boolean; crop: string | null }
@@ -51,6 +52,11 @@ export function MapPage() {
   const [pending, setPending] = useState<{ geometry: Boundary; ha: number } | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
+  // An old farm map photo laid see-through over the satellite view, to trace outlines from.
+  const [overlay, setOverlay] = useState<string | null>(() => { try { return sessionStorage.getItem(OVERLAY_KEY) } catch { return null } })
+  const [overlayOpacity, setOverlayOpacity] = useState(0.5)
+  const [overlayShown, setOverlayShown] = useState(true)
+  const removeOverlay = () => { try { sessionStorage.removeItem(OVERLAY_KEY) } catch { /* ignore */ } setOverlay(null) }
 
   const areas: Area[] = useMemo(() => [
     ...(fields.data ?? []).map((f) => ({
@@ -270,6 +276,16 @@ export function MapPage() {
   return (
     <div className="map-page">
       <div ref={mapEl} className="map" />
+      {overlay && overlayShown && <img src={overlay} alt="" className="map-overlay" style={{ opacity: overlayOpacity }} />}
+      {overlay && (
+        <div className="overlay-bar">
+          <span className="tiny">{t('overlayHelp')}</span>
+          <input type="range" min={0.1} max={0.9} step={0.05} value={overlayOpacity} aria-label={t('seeThrough')}
+            onChange={(e) => setOverlayOpacity(Number(e.target.value))} />
+          <button className="btn small" onClick={() => setOverlayShown(!overlayShown)}>{overlayShown ? '🙈' : '👁'}</button>
+          <button className="btn small" onClick={removeOverlay} aria-label={t('close')}>✕</button>
+        </div>
+      )}
 
       <div className="map-tools">
         <button className="btn map-btn" onClick={locate}>◎ {t('mapLocate')}</button>

@@ -12,6 +12,7 @@ import { RecordFormPage } from './features/crops/RecordFormPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
 import { LandDetailPage } from './features/land/LandDetailPage'
 import { LandPage } from './features/land/LandPage'
+import { MapImportPage } from './features/land/MapImportPage'
 import { SettingsPage } from './features/settings/SettingsPage'
 import { WeatherPage } from './features/weather/WeatherPage'
 import { GroupPage } from './features/livestock/GroupPage'
@@ -62,6 +63,7 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="map" element={<Suspense fallback={<Loading />}><MapPage /></Suspense>} />
           <Route path="land" element={<LandPage />} />
+          <Route path="land/import" element={<MapImportPage />} />
           <Route path="land/:kind/:id" element={<LandDetailPage />} />
           <Route path="land/field/:id/record/:type/:recordId?" element={<RecordFormPage />} />
           <Route path="settings" element={<SettingsPage />} />
