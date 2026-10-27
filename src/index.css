@@ -84,6 +84,7 @@ a { color: var(--brand-2); }
 /* Bottom sheet */
 .sheet-backdrop { position: fixed; inset: 0; z-index: 2000; background: rgba(8, 24, 12, .45); display: flex; align-items: flex-end; justify-content: center; }
 .sheet {
+  color: var(--ink); text-align: left; user-select: text;
   width: 100%; max-width: 560px; max-height: 82dvh; overflow: auto; background: var(--card);
   border-radius: 28px 28px 0 0; padding: 10px 18px calc(20px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 14px;
   animation: sheet-up .22s ease-out;
@@ -169,10 +170,12 @@ input:disabled, textarea:disabled, select:disabled { background: #eef1ec; color:
 .hero-logo { border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,.25); }
 .muted-light { color: rgba(255, 255, 255, .8); }
 .hero-weather {
-  display: flex; align-items: center; gap: 14px; background: rgba(255, 255, 255, .14);
-  border: 1px solid rgba(255, 255, 255, .18); border-radius: 20px; padding: 10px 16px; backdrop-filter: blur(6px);
+  display: flex; flex-direction: column; align-items: center; gap: 2px; flex: none; min-width: 92px;
+  background: rgba(10, 30, 16, .35); border: 1px solid rgba(255, 255, 255, .22); border-radius: 20px;
+  padding: 8px 12px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
 }
-.hero-temp { font-size: 2rem; font-weight: 800; line-height: 1; }
+.hero-temp { font-size: 1.7rem; font-weight: 800; line-height: 1; }
+.hero-sky { font-size: .72rem; font-weight: 700; color: rgba(255,255,255,.9); text-align: center; max-width: 90px; }
 
 /* Stat tiles */
 .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -299,3 +302,16 @@ details.card[open] > summary::after { content: '▴'; }
 .temp-range { display: flex; align-items: center; gap: 8px; }
 .range-track { position: relative; flex: 1; height: 8px; border-radius: 999px; background: var(--track); }
 .range-fill { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, #60a5fa, #fbbf24, #f97316); }
+
+/* Home photo and crop icons */
+.hero.hero-photo { background-size: cover; background-position: center 62%; min-height: 330px; justify-content: flex-start; position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.hero-photo .hero-greet { text-shadow: 0 1px 6px rgba(0,0,0,.4); }
+.hero-photo .hero-farm, .hero-photo .muted-light { text-shadow: 0 1px 8px rgba(0,0,0,.45); }
+.photo-btn { position: absolute; right: 16px; bottom: 18px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(255,255,255,.88); font-size: 1.2rem; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.crop-icon { display: inline-grid; place-items: center; border-radius: 50%; flex: none; }
+.chip-mini { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px 2px 3px; }
+.chip-mini .crop-icon { background: rgba(255,255,255,.75) !important; }
+.crop-picker { border: 0; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.crop-picker legend { font-weight: 650; font-size: .95rem; margin-bottom: 6px; padding: 0; }
+.crop-tile { font: inherit; font-weight: 700; font-size: .88rem; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: var(--radius-sm); border: 1.5px solid var(--field-line); background: #fff; color: var(--ink); cursor: pointer; }
+.crop-tile.on { border-color: var(--brand); background: var(--soft); box-shadow: 0 0 0 2px var(--brand) inset; }

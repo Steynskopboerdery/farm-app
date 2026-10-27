@@ -7,6 +7,7 @@ import { todayIso } from '../../lib/calc/dates'
 import { rateFromTotal, totalFromRate } from '../../lib/calc/season'
 import { safeHarvestDate, withholdingConflicts } from '../../lib/calc/withholding'
 import { yieldPerHa } from '../../lib/calc/yield'
+import { CropIcon } from '../../components/CropIcon'
 import { CROP_OPTIONS } from '../../lib/crops'
 import { defaultSeasonId, ensureSeason, UNIT_FOR_RATE, useFieldRecords } from '../../lib/fieldRecords'
 import { formatDate, formatHa, formatNumber } from '../../lib/format'
@@ -212,12 +213,15 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
 
         {type === 'planting' && (
           <>
-            <label>{t('crop')}
-              <select value={f.crop} disabled={!isOwner} onChange={(e) => set('crop', e.target.value)}>
-                {CROP_OPTIONS.map((c) => <option key={c} value={c}>{w(c)}</option>)}
-                <option value="other">{t('otherCrop')}</option>
-              </select>
-            </label>
+            <fieldset className="crop-picker" disabled={!isOwner}>
+              <legend>{t('crop')}</legend>
+              {[...CROP_OPTIONS, 'other'].map((c) => (
+                <button key={c} type="button" className={`crop-tile ${f.crop === c ? 'on' : ''}`} aria-pressed={f.crop === c} onClick={() => set('crop', c)}>
+                  <CropIcon crop={c} size={44} />
+                  <span>{c === 'other' ? t('otherCrop') : w(c)}</span>
+                </button>
+              ))}
+            </fieldset>
             {f.crop === 'other' && input('cropOther', t('cropOtherName'))}
             {input('cultivar', t('cultivar'))}
             {input('date', t('plantingDate'), { type: 'date' })}

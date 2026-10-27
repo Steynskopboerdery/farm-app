@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { cropColour } from '../lib/crops'
+import { CropIcon } from './CropIcon'
 import { formatHa } from '../lib/format'
 import { useI18n, type DictKey } from '../lib/i18n'
 import { useCurrentPlantings, useFields } from '../lib/queries'
@@ -52,7 +52,7 @@ export function QuickAddSheet({ onClose }: { onClose: () => void }) {
               return (
                 <li key={f.id}>
                   <button className="row link-row plain" onClick={() => pick(f.id)}>
-                    <span className="swatch" style={{ background: cropColour(crop) }} />
+                    <CropIcon crop={crop} size={34} />
                     <span className="grow left">{f.name}<span className="small muted"> · {crop ? w(crop) : t('noCrop')}</span></span>
                     <span className="small muted">{formatHa(f.hectares, lang)}</span>
                     <span className="chev">›</span>

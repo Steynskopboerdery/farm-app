@@ -6,7 +6,7 @@ import { useFarm, useFarmId } from '../../farm/FarmProvider'
 import { todayIso } from '../../lib/calc/dates'
 import { seasonSummary } from '../../lib/calc/season'
 import { safeHarvestDate, withholdingConflicts } from '../../lib/calc/withholding'
-import { cropColour } from '../../lib/crops'
+import { CropIcon } from '../../components/CropIcon'
 import { defaultSeasonId, useFieldRecords, useFieldTasks, type Operation } from '../../lib/fieldRecords'
 import { formatDateShort, formatHa, formatNumber, formatZar } from '../../lib/format'
 import { useI18n, type DictKey } from '../../lib/i18n'
@@ -90,7 +90,7 @@ export function FieldSeasonPanel({ fieldId, fieldName, hectares }: { fieldId: st
       <Section title={t('plantingTitle')} action={!planting ? <AddButton type="planting" label="addPlanting" /> : undefined}>
         {planting ? (
           <Link className="row link-row" to={editLink('planting', planting.id)}>
-            <span className="swatch" style={{ background: cropColour(planting.crop) }} />
+            <CropIcon crop={planting.crop} size={46} />
             <div className="grow">
               <div><strong>{w(planting.crop)}</strong>{planting.cultivar ? ` · ${planting.cultivar}` : ''}</div>
               <div className="small muted">

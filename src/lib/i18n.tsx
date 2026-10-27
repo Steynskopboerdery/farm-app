@@ -315,6 +315,11 @@ const en = {
   viewAsWorker: 'View as worker',
   previewingWorker: 'You are viewing the app as a worker',
   backToOwner: 'Back to owner',
+  homePhoto: 'Home screen photo',
+  homePhotoHelp: 'Choose a photo of your farm. Everyone on the farm sees it. Tip: press and hold the photo to get here.',
+  choosePhoto: 'Choose from my photos',
+  defaultPhoto: 'Back to the standard picture',
+  changePhoto: 'Change photo',
 }
 
 export type DictKey = keyof typeof en
@@ -623,6 +628,11 @@ const af: Record<DictKey, string> = {
   viewAsWorker: 'Kyk as werker',
   previewingWorker: 'Jy kyk na die app as ’n werker',
   backToOwner: 'Terug na eienaar',
+  homePhoto: 'Tuisskermfoto',
+  homePhotoHelp: 'Kies ’n foto van jou plaas. Almal op die plaas sien dit. Wenk: druk en hou die foto om hier te kom.',
+  choosePhoto: 'Kies uit my foto’s',
+  defaultPhoto: 'Terug na die standaardprent',
+  changePhoto: 'Verander foto',
 }
 
 const dicts: Record<Lang, Record<DictKey, string>> = { en, af }
@@ -631,7 +641,7 @@ const dicts: Record<Lang, Record<DictKey, string>> = { en, af }
 const words: Record<Lang, Record<string, string>> = {
   en: {},
   af: {
-    wheat: 'koring', canola: 'canola', barley: 'gars', oats: 'hawer', lupins: 'lupiene',
+    wheat: 'koring', canola: 'canola', barley: 'gars', oats: 'hawer', lupins: 'lupiene', other: 'ander',
     ewes: 'ooie', rams: 'ramme', lambs: 'lammers', cows: 'koeie', bulls: 'bulle', calves: 'kalwers', heifers: 'verse',
     sheep: 'skape', cattle: 'beeste',
   },

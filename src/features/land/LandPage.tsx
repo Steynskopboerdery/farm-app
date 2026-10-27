@@ -3,7 +3,8 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ErrorText, Loading, numOrNull, SampleBadge } from '../../components/ui'
 import { useFarm, useFarmId } from '../../farm/FarmProvider'
-import { CAMP_COLOUR, cropColour } from '../../lib/crops'
+import { CropIcon } from '../../components/CropIcon'
+import { CAMP_COLOUR } from '../../lib/crops'
 import { formatHa } from '../../lib/format'
 import { useI18n } from '../../lib/i18n'
 import { useCamps, useCurrentPlantings, useFields } from '../../lib/queries'
@@ -35,7 +36,7 @@ export function LandPage() {
             return (
               <li key={r.id}>
                 <Link className="row link-row" to={`/land/${tab === 'fields' ? 'field' : 'camp'}/${r.id}`}>
-                  <span className="swatch" style={{ background: tab === 'camps' ? CAMP_COLOUR : cropColour(crop) }} />
+                  {tab === 'camps' ? <span className="swatch" style={{ background: CAMP_COLOUR }} /> : <CropIcon crop={crop} size={38} />}
                   <div className="grow">
                     <div>{r.name} <SampleBadge show={r.is_sample} /></div>
                     <div className="small muted">

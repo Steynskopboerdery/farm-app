@@ -13,11 +13,9 @@ export function WeatherNow() {
   if (!now) return <p className="hero-weather muted-light">{weather.isError ? t('weatherError') : t('loading')}</p>
   return (
     <div className="hero-weather">
-      <SkyIcon symbol={now.symbol} size={54} />
-      <div>
-        <div className="hero-temp">{Math.round(now.temp)}°C</div>
-        <div className="muted-light">{t(`sky_${skyFromSymbol(now.symbol)}` as DictKey)}</div>
-      </div>
+      <SkyIcon symbol={now.symbol} size={44} />
+      <div className="hero-temp">{Math.round(now.temp)}°</div>
+      <div className="hero-sky">{t(`sky_${skyFromSymbol(now.symbol)}` as DictKey)}</div>
     </div>
   )
 }

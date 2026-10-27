@@ -13,6 +13,8 @@ import { useI18n } from '../../lib/i18n'
 import { useBreedingPlans, useCamps, useCurrentPlantings, useFields, useGroups, useOpenTasks, useShearingPlans } from '../../lib/queries'
 import { supabase } from '../../lib/supabase'
 import { WeatherCard, WeatherNow } from '../weather/WeatherCard'
+import { HeroPhoto } from './HeroPhoto'
+import { CropIcon } from '../../components/CropIcon'
 
 function greeting(hour: number) {
   return hour < 12 ? 'greetMorning' : hour < 18 ? 'greetAfternoon' : 'greetEvening'
@@ -95,17 +97,16 @@ export function DashboardPage() {
 
   return (
     <div className="page stack home">
-      <header className="hero">
+      <HeroPhoto>
         <div className="hero-top">
           <div>
             <p className="hero-greet">{t(greeting(new Date().getHours()))}</p>
             <h1 className="hero-farm">{farm?.name}</h1>
             <p className="muted-light">{formatDate(today, lang)}</p>
           </div>
-          <img src="/icon.svg" alt="" width={44} height={44} className="hero-logo" />
+          <WeatherNow />
         </div>
-        <WeatherNow />
-      </header>
+      </HeroPhoto>
 
       {hasSample && <p className="notice">{t('sampleBanner')}</p>}
       <ErrorText error={fields.error} />
@@ -157,7 +158,7 @@ export function DashboardPage() {
                   <span className="field-card-ha">{formatHa(f.hectares, lang)}</span>
                   <span className="field-card-body">
                     <strong>{f.name}</strong>
-                    <span className="chip-mini" style={{ background: colour }}>{p ? w(p.crop) : t('noCrop')}</span>
+                    <span className="chip-mini" style={{ background: colour }}><CropIcon crop={p?.crop} size={22} />{p ? w(p.crop) : t('noCrop')}</span>
                   </span>
                   {centre && <span className="field-card-credit">{t('imageryCredit')}</span>}
                 </Link>
@@ -192,7 +193,7 @@ export function DashboardPage() {
             {harvestsSoon.map(({ field, p }) => (
               <li key={field.id}>
                 <Link className="row link-row" to={`/land/field/${field.id}`}>
-                  <span className="swatch" style={{ background: cropColour(p!.crop) }} />
+                  <CropIcon crop={p!.crop} size={34} />
                   <div className="grow">{field.name} · {w(p!.crop)}</div>
                   <div className="small right">{formatDateShort(p!.expected_harvest_date, lang)}</div>
                   <span className="chev">›</span>
@@ -227,7 +228,7 @@ export function DashboardPage() {
             <ul className="list">
               {[...cropTotals.entries()].map(([crop, ha]) => (
                 <li key={crop} className="row">
-                  <span className="swatch" style={{ background: cropColour(crop) }} />
+                  <CropIcon crop={crop} size={34} />
                   <div className="grow">{w(crop)}</div>
                   <div className="small muted">{plantedHa ? `${Math.round((ha / plantedHa) * 100)}%` : ''}</div>
                   <div><strong>{formatHa(ha, lang)}</strong></div>

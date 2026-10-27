@@ -139,5 +139,10 @@ supabase/
 - Weather terms: MET Norway data is free, also for business use, under CC BY 4.0. The app shows "Weather data: MET Norway".
   The function identifies the app to MET with a User-Agent, as MET requires.
 
+### Crop icons and home photo (done)
+- Drawn icons for wheat, canola, barley, oats, lupins and other crops: in field lists, field cards, crop overview, quick add, and a tap-to-pick crop grid when planting.
+- Home screen photo: a drawn Overberg wheat field with a tractor by default (`public/hero-default.svg`, made for this app, free to use).
+  Owners press and hold the photo (or tap 📷) to choose their own. It is shrunk to max 1600 px and stored privately in Supabase Storage (`farm-photos` bucket, folder per farm; members can view, owners can change).
+
 ### Phase 3: livestock (next)
 Groups and animals, health events, breeding and shearing calendar, dashboard reminders.

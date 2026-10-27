@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7fb7e6"/>
+      <stop offset=".55" stop-color="#cfe6f2"/>
+      <stop offset="1" stop-color="#f7e7c4"/>
+    </linearGradient>
+    <radialGradient id="sun" cx=".82" cy=".2" r=".35">
+      <stop offset="0" stop-color="#fff6d5" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#fff6d5" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hillFar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9c27a"/><stop offset="1" stop-color="#c7a95a"/>
+    </linearGradient>
+    <linearGradient id="hillMid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7fa653"/><stop offset="1" stop-color="#5e8a3c"/>
+    </linearGradient>
+    <linearGradient id="wheat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f1c75b"/><stop offset="1" stop-color="#d79b2e"/>
+    </linearGradient>
+    <linearGradient id="dust" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#f3dfb0" stop-opacity=".85"/><stop offset="1" stop-color="#f3dfb0" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="700" fill="url(#sky)"/>
+  <rect width="1200" height="700" fill="url(#sun)"/>
+  <g fill="#fff" opacity=".7">
+    <ellipse cx="260" cy="110" rx="90" ry="18"/><ellipse cx="320" cy="98" rx="60" ry="16"/>
+    <ellipse cx="700" cy="70" rx="70" ry="12"/>
+  </g>
+
+  <!-- Langeberg mountains -->
+  <path d="M0 300 L90 250 L160 270 L250 205 L330 245 L420 190 L500 232 L590 180 L680 228 L760 196 L860 240 L950 200 L1040 236 L1120 214 L1200 240 V360 H0Z" fill="#7d93ad" opacity=".8"/>
+  <path d="M0 320 L120 285 L220 300 L320 268 L430 296 L560 262 L700 292 L820 266 L960 294 L1080 272 L1200 290 V380 H0Z" fill="#94a7b8" opacity=".85"/>
+
+  <!-- Rolling Overberg hills -->
+  <path d="M0 360 C200 320 380 330 560 352 S920 320 1200 345 V700 H0Z" fill="url(#hillFar)"/>
+  <path d="M0 400 C180 370 330 372 470 392 C640 418 820 360 1200 384 V700 H0Z" fill="url(#hillMid)"/>
+  <g stroke="#4f7a32" stroke-width="2" opacity=".45" fill="none">
+    <path d="M0 420 C200 392 340 396 480 414 C660 440 840 380 1200 404"/>
+    <path d="M0 440 C210 414 350 418 490 436 C670 462 850 402 1200 426"/>
+  </g>
+
+  <!-- Golden wheat field in front, with curved rows -->
+  <path d="M0 470 C260 430 520 438 760 462 C930 478 1060 466 1200 452 V700 H0Z" fill="url(#wheat)"/>
+  <g stroke="#b98222" stroke-width="3" opacity=".35" fill="none">
+    <path d="M0 500 C260 462 520 470 760 494 C930 510 1060 498 1200 486"/>
+    <path d="M0 535 C260 497 520 505 760 529 C930 545 1060 533 1200 521"/>
+    <path d="M0 575 C260 537 520 545 760 569 C930 585 1060 573 1200 561"/>
+    <path d="M0 620 C260 582 520 590 760 614 C930 630 1060 618 1200 606"/>
+    <path d="M0 670 C260 632 520 640 760 664 C930 680 1060 668 1200 656"/>
+  </g>
+  <!-- Harvested strip behind the tractor -->
+  <path d="M0 548 C180 528 360 526 520 536 L520 566 C360 556 180 558 0 580Z" fill="#e7cf8d" opacity=".9"/>
+
+  <!-- Dust cloud -->
+  <ellipse cx="470" cy="532" rx="140" ry="34" fill="url(#dust)"/>
+
+  <!-- Tractor -->
+  <g transform="translate(540 452)">
+    <ellipse cx="80" cy="104" rx="105" ry="12" fill="#000" opacity=".18"/>
+    <!-- body -->
+    <path d="M40 40 h70 l18 26 h38 a8 8 0 0 1 8 8 v18 h-134z" fill="#2f8f3a"/>
+    <path d="M128 66 h38 a8 8 0 0 1 8 8 v6 h-46z" fill="#287a32"/>
+    <rect x="150" y="56" width="6" height="14" rx="2" fill="#3a3a3a"/>
+    <rect x="148" y="48" width="10" height="10" rx="2" fill="#555"/>
+    <!-- cab -->
+    <path d="M44 -6 h58 l8 46 h-70z" fill="#2f8f3a"/>
+    <path d="M52 2 h44 l6 32 h-54z" fill="#bfe3f2" opacity=".9"/>
+    <path d="M40 -10 h66 v6 h-66z" fill="#22702b"/>
+    <rect x="58" y="10" width="14" height="18" rx="3" fill="#2d3b45" opacity=".8"/>
+    <!-- yellow accents and light -->
+    <rect x="40" y="84" width="134" height="6" fill="#f2c21b"/>
+    <circle cx="172" cy="74" r="4" fill="#fff6b0"/>
+    <!-- rear wheel -->
+    <circle cx="58" cy="92" r="40" fill="#222"/>
+    <circle cx="58" cy="92" r="27" fill="#3a3a3a"/>
+    <circle cx="58" cy="92" r="17" fill="#f2c21b"/>
+    <circle cx="58" cy="92" r="6" fill="#8a6d00"/>
+    <g stroke="#111" stroke-width="5">
+      <path d="M58 52v8M58 124v8M18 92h8M90 92h8M30 64l6 6M80 114l6 6M30 120l6-6M80 70l6-6"/>
+    </g>
+    <!-- front wheel -->
+    <circle cx="150" cy="104" r="22" fill="#222"/>
+    <circle cx="150" cy="104" r="11" fill="#f2c21b"/>
+    <circle cx="150" cy="104" r="4" fill="#8a6d00"/>
+  </g>
+
+  <!-- Wheat ears in the foreground -->
+  <g stroke="#a8701c" stroke-width="2" fill="#e8b445">
+    <g transform="translate(70 600)"><path d="M0 100V0" fill="none"/><ellipse cx="-5" cy="10" rx="4" ry="9" transform="rotate(-25 -5 10)"/><ellipse cx="5" cy="18" rx="4" ry="9" transform="rotate(25 5 18)"/><ellipse cx="-5" cy="28" rx="4" ry="9" transform="rotate(-25 -5 28)"/></g>
+    <g transform="translate(110 620)"><path d="M0 80V0" fill="none"/><ellipse cx="-5" cy="10" rx="4" ry="9" transform="rotate(-25 -5 10)"/><ellipse cx="5" cy="18" rx="4" ry="9" transform="rotate(25 5 18)"/></g>
+    <g transform="translate(1110 610)"><path d="M0 90V0" fill="none"/><ellipse cx="-5" cy="10" rx="4" ry="9" transform="rotate(-25 -5 10)"/><ellipse cx="5" cy="18" rx="4" ry="9" transform="rotate(25 5 18)"/><ellipse cx="-5" cy="28" rx="4" ry="9" transform="rotate(-25 -5 28)"/></g>
+  </g>
+</svg>

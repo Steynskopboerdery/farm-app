@@ -640,6 +640,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           deleted_at: string | null
+          hero_photo_path: string | null
           id: string
           location_text: string | null
           map_center_lat: number | null
@@ -653,6 +654,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
+          hero_photo_path?: string | null
           id?: string
           location_text?: string | null
           map_center_lat?: number | null
@@ -666,6 +668,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
+          hero_photo_path?: string | null
           id?: string
           location_text?: string | null
           map_center_lat?: number | null
