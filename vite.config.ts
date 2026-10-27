@@ -33,6 +33,10 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // A new version takes over as soon as it has downloaded (set explicitly: with
+        // injectRegister: false the plugin no longer sets these for autoUpdate).
+        skipWaiting: true,
+        clientsClaim: true,
         // The app itself always opens offline. Farm data read recently is kept for offline viewing.
         // Satellite tiles are not stored by the app (Esri terms); the browser's normal cache still applies.
         navigateFallback: '/index.html',
