@@ -10,7 +10,8 @@ import { I18nProvider } from './lib/i18n'
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { staleTime: 30_000, retry: 1, networkMode: 'offlineFirst' },
-    mutations: { networkMode: 'offlineFirst' },
+    // Changes made without signal wait, and are sent automatically when signal returns.
+    mutations: { networkMode: 'online' },
   },
 })
 

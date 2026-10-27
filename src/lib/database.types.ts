@@ -523,6 +523,7 @@ export type Database = {
           email: string | null
           farm_id: string
           id: string
+          permissions: Json
           role: string
           updated_at: string
           user_id: string
@@ -535,6 +536,7 @@ export type Database = {
           email?: string | null
           farm_id: string
           id?: string
+          permissions?: Json
           role: string
           updated_at?: string
           user_id: string
@@ -547,6 +549,7 @@ export type Database = {
           email?: string | null
           farm_id?: string
           id?: string
+          permissions?: Json
           role?: string
           updated_at?: string
           user_id?: string

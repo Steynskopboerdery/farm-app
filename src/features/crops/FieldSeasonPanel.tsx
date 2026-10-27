@@ -5,6 +5,7 @@ import { ErrorText, Section } from '../../components/ui'
 import { useFarm, useFarmId } from '../../farm/FarmProvider'
 import { todayIso } from '../../lib/calc/dates'
 import { seasonSummary } from '../../lib/calc/season'
+import { rotationAdvice, suggestedNextCrops } from '../../lib/calc/advice'
 import { safeHarvestDate, withholdingConflicts } from '../../lib/calc/withholding'
 import { CropIcon } from '../../components/CropIcon'
 import { defaultSeasonId, useFieldRecords, useFieldTasks, type Operation } from '../../lib/fieldRecords'
@@ -17,7 +18,8 @@ import type { RecordType } from './RecordFormPage'
 /** Crop records for one field: season picker, records by kind, totals, warnings, reminders and history. */
 export function FieldSeasonPanel({ fieldId, fieldName, hectares }: { fieldId: string; fieldName: string; hectares: number | null }) {
   const { t, w, lang } = useI18n()
-  const { isOwner } = useFarm()
+  const { isOwner, can } = useFarm()
+  const canField = can('field_records')
   const [params, setParams] = useSearchParams()
   const seasons = useSeasons()
   const records = useFieldRecords(fieldId)
@@ -39,7 +41,7 @@ export function FieldSeasonPanel({ fieldId, fieldName, hectares }: { fieldId: st
   const addLink = (type: RecordType) => `/land/field/${fieldId}/record/${type}${seasonId ? `?season=${seasonId}` : ''}`
   const editLink = (type: RecordType, id: string) => `/land/field/${fieldId}/record/${type}/${id}`
   const AddButton = ({ type, label }: { type: RecordType; label: DictKey }) =>
-    isOwner ? <Link className="btn small" to={addLink(type)} aria-label={t(label)}>+ {t('add')}</Link> : null
+    canField ? <Link className="btn small" to={addLink(type)} aria-label={t(label)}>+ {t('add')}</Link> : null
 
   const opRows = (list: Operation[], type: RecordType) => list.length === 0 ? <p className="muted">{t('noRecords')}</p> : (
     <ul className="list">
@@ -75,7 +77,7 @@ export function FieldSeasonPanel({ fieldId, fieldName, hectares }: { fieldId: st
       </div>
       {!seasons.data?.length && <p className="muted">{t('noSeason')}</p>}
       {season?.notes && <p className="season-note">📝 {season.notes}</p>}
-      {!isOwner && <p className="muted small">{t('viewOnly')}</p>}
+      {!canField && <p className="muted small">{t('viewOnly')}</p>}
 
       {conflicts.length > 0 && (
         <div className="warning">
@@ -158,6 +160,7 @@ export function FieldSeasonPanel({ fieldId, fieldName, hectares }: { fieldId: st
         </dl>
       </Section>
 
+      <RotationCard plantings={records.data?.plantings ?? []} />
       <Reminders fieldId={fieldId} fieldName={fieldName} />
       <SeasonHistory records={records.data} hectares={hectares} seasonId={seasonId} onPick={(id) => setParams({ season: id }, { replace: true })} />
       <ErrorText error={records.error} />
@@ -210,7 +213,8 @@ const TASK_TYPES = ['spray', 'fertilise', 'plant', 'harvest', 'general'] as cons
 
 function Reminders({ fieldId, fieldName }: { fieldId: string; fieldName: string }) {
   const { t, lang } = useI18n()
-  const { isOwner } = useFarm()
+  const { can } = useFarm()
+  const canTasks = can('tasks')
   const farmId = useFarmId()
   const qc = useQueryClient()
   const tasks = useFieldTasks(fieldId)
@@ -263,7 +267,7 @@ function Reminders({ fieldId, fieldName }: { fieldId: string; fieldName: string 
           ))}
         </ul>
       )}
-      {isOwner && (
+      {canTasks && (
         <form className="stack subcard" onSubmit={submit}>
           <div className="grid2">
             <label>{t('taskType')}
@@ -278,6 +282,43 @@ function Reminders({ fieldId, fieldName }: { fieldId: string; fieldName: string 
           <ErrorText error={add.error ?? done.error} />
         </form>
       )}
+    </Section>
+  )
+}
+
+/** Rotation check from this field's crops by season. Advice only. */
+function RotationCard({ plantings }: { plantings: { season_id: string; crop: string }[] }) {
+  const { t, w } = useI18n()
+  const seasons = useSeasons()
+  const yearOf = new Map((seasons.data ?? []).map((x) => [x.id, x.year]))
+  const history = plantings.filter((p) => yearOf.has(p.season_id)).map((p) => ({ year: yearOf.get(p.season_id)!, crop: p.crop }))
+  if (history.length === 0) return null
+  const advice = rotationAdvice(history)
+  const next = suggestedNextCrops(history)
+  return (
+    <Section title={t('rotationTitle')}>
+      <div className="chips">
+        {[...history].sort((a, b) => a.year - b.year).map((h) => (
+          <span key={`${h.year}-${h.crop}`} className="chip rot-chip"><CropIcon crop={h.crop} size={22} /> {h.year} · {w(h.crop)}</span>
+        ))}
+      </div>
+      <ul className="advice-list">
+        {advice.map((a, i) => (
+          <li key={i} className={a.kind === 'good' ? 'ok' : ''}>
+            {a.kind === 'good' ? `✓ ${t('rot_good')}`
+              : a.kind === 'same-crop' ? `💡 ${t('rot_same-crop', { crop: w(a.crop), years: a.years })}`
+                : a.kind === 'cereal-run' ? `💡 ${t('rot_cereal-run', { years: a.years })}`
+                  : `💡 ${t(a.kind === 'canola-too-soon' ? 'rot_canola-too-soon' : 'rot_lupins-too-soon', { year: a.lastYear })}`}
+          </li>
+        ))}
+      </ul>
+      {next.length > 0 && (
+        <div className="row wrap">
+          <span className="small muted">{t('rotSuggest')}</span>
+          {next.slice(0, 3).map((c) => <span key={c} className="chip rot-chip"><CropIcon crop={c} size={22} /> {w(c)}</span>)}
+        </div>
+      )}
+      <p className="tiny muted">{t('rotationDisclaimer')}</p>
     </Section>
   )
 }

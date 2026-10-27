@@ -86,7 +86,8 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
   existing: Record<string, unknown> | undefined
 }) {
   const { t, w, lang } = useI18n()
-  const { isOwner } = useFarm()
+  const { isOwner, can } = useFarm()
+  const canEdit = can('field_records')
   const farmId = useFarmId()
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -217,7 +218,7 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
 
   const input = (k: string, label: string, opts: { mode?: 'decimal' | 'numeric'; type?: string; help?: string; onInput?: () => void } = {}) => (
     <label>{label}
-      <input type={opts.type ?? 'text'} inputMode={opts.mode} value={f[k] ?? ''} disabled={!isOwner}
+      <input type={opts.type ?? 'text'} inputMode={opts.mode} value={f[k] ?? ''} disabled={!canEdit}
         onChange={(e) => { opts.onInput?.(); set(k, e.target.value) }} />
       {opts.help && <span className="hint">{opts.help}</span>}
     </label>
@@ -234,7 +235,7 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
 
       <form className="card stack" onSubmit={submit}>
         <label>{t('season')}
-          <select value={season} disabled={!isOwner} onChange={(e) => setSeason(e.target.value)}>
+          <select value={season} disabled={!canEdit} onChange={(e) => setSeason(e.target.value)}>
             {!hasThisYear && <option value={`new:${thisYear}`}>{t('newSeason', { year: thisYear })}</option>}
             {seasonOptions.map((s) => <option key={s.id} value={s.id}>{s.label || s.year}</option>)}
           </select>
@@ -242,7 +243,7 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
 
         {type === 'planting' && (
           <>
-            <fieldset className="crop-picker" disabled={!isOwner}>
+            <fieldset className="crop-picker" disabled={!canEdit}>
               <legend>{t('crop')}</legend>
               {[...CROP_OPTIONS, 'other'].map((c) => (
                 <button key={c} type="button" className={`crop-tile ${f.crop === c ? 'on' : ''}`} aria-pressed={f.crop === c} onClick={() => set('crop', c)}>
@@ -272,7 +273,7 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
         {(type === 'fertiliser' || type === 'spray' || type === 'other') && (
           <>
             {input('date', t('date'), { type: 'date' })}
-            {type !== 'other' && storeItems.length > 0 && isOwner && (
+            {type !== 'other' && storeItems.length > 0 && canEdit && (
               <label>{t('fromStore')}
                 <select value={storeItem} onChange={(e) => {
                   const it = storeItems.find((i) => i.id === e.target.value)
@@ -291,7 +292,7 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
                 <div className="grid2">
                   {input('rate', t('rate'), { mode: 'decimal' })}
                   <label>{t('rateUnit')}
-                    <select value={f.rateUnit} disabled={!isOwner} onChange={(e) => set('rateUnit', e.target.value)}>
+                    <select value={f.rateUnit} disabled={!canEdit} onChange={(e) => set('rateUnit', e.target.value)}>
                       {Object.keys(UNIT_FOR_RATE).map((u) => <option key={u} value={u}>{u}</option>)}
                     </select>
                   </label>
@@ -339,13 +340,13 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
           </div>
         )}
 
-        <label>{t('notes')}<textarea rows={2} value={f.notes ?? ''} disabled={!isOwner} onChange={(e) => set('notes', e.target.value)} /></label>
+        <label>{t('notes')}<textarea rows={2} value={f.notes ?? ''} disabled={!canEdit} onChange={(e) => set('notes', e.target.value)} /></label>
 
-        {isOwner && <button className="btn primary" disabled={save.isPending}>{save.isPending ? t('saving') : t('save')}</button>}
+        {canEdit && <button className="btn primary" disabled={save.isPending}>{save.isPending ? t('saving') : t('save')}</button>}
         <ErrorText error={save.error} />
       </form>
 
-      {isOwner && existing && (
+      {canEdit && existing && (
         <button className="btn danger" disabled={remove.isPending}
           onClick={() => confirm(t('removeRecordConfirm')) && remove.mutate()}>{t('removeRecord')}</button>
       )}

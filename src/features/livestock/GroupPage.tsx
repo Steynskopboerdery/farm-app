@@ -15,7 +15,8 @@ import { countdown } from './LivestockCalendar'
 export function GroupPage() {
   const { id } = useParams<{ id: string }>()
   const { t, w, lang } = useI18n()
-  const { isOwner } = useFarm()
+  const { isOwner, can } = useFarm()
+  const canAnimals = can('animal_records')
   const navigate = useNavigate()
   const qc = useQueryClient()
   const groups = useGroups()
@@ -51,7 +52,7 @@ export function GroupPage() {
   const { events = [], animals = [], breeding = [], shearing = [] } = records.data ?? {}
   const alive = animals.filter((a) => a.status === 'alive')
   const base = `/livestock/group/${group.id}`
-  const add = (to: string) => (isOwner ? <Link className="btn small" to={`${base}/${to}`}>+ {t('add')}</Link> : null)
+  const add = (to: string) => (canAnimals ? <Link className="btn small" to={`${base}/${to}`}>+ {t('add')}</Link> : null)
   const birthWord = group.species === 'cattle' ? t('cal_calving') : t('cal_lambing')
 
   return (
@@ -68,12 +69,12 @@ export function GroupPage() {
         <div className="group-count big"><strong>{formatNumber(group.quantity, 0, lang)}</strong><span className="tiny muted">{t('head')}</span></div>
       </section>
 
-      {isOwner && (
+      {canAnimals && (
         <div className="btn-row">
           <Link className="btn primary" to={`${base}/event`}>+ {t('addEvent')}</Link>
         </div>
       )}
-      {!isOwner && <p className="muted small">{t('viewOnly')}</p>}
+      {!canAnimals && <p className="muted small">{t('viewOnly')}</p>}
 
       {(tasks.data ?? []).length > 0 && (
         <Section title={t('reminders')}>

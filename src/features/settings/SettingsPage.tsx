@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { LanguageSwitch, VersionLabel } from '../../components/LanguageSwitch'
 import { ErrorText, numOrNull, Section, textOrNull } from '../../components/ui'
-import { useFarm, useFarmId } from '../../farm/FarmProvider'
-import { useI18n } from '../../lib/i18n'
+import { PERMISSIONS, useFarm, useFarmId } from '../../farm/FarmProvider'
+import { useI18n, type DictKey } from '../../lib/i18n'
 import { PasswordSection } from './PasswordSection'
 import { centreOf } from '../../lib/geo'
 import { useFarmLocation } from '../../lib/useWeather'
@@ -275,6 +275,14 @@ function TeamSection() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['farm_invites'] }),
   })
 
+  const setPermissions = useMutation({
+    mutationFn: async ({ id, permissions }: { id: string; permissions: Record<string, boolean> }) => {
+      const { error } = await supabase.from('farm_members').update({ permissions }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['farm_members'] }),
+  })
+
   const setMemberRole = useMutation({
     mutationFn: async ({ id, role }: { id: string; role: string }) => {
       const { error } = await supabase.from('farm_members').update({ role }).eq('id', id)
@@ -287,17 +295,34 @@ function TeamSection() {
     <Section title={t('team')}>
       <p className="small muted">{t('teamHelp')}</p>
       <ul className="list">
-        {(members.data ?? []).map((m) => (
-          <li key={m.id} className="row">
-            <div className="grow">{m.email}{m.user_id === session?.user.id ? ` (${t('you')})` : ''}</div>
-            {m.user_id === session?.user.id ? <span className="small">{t('owner')}</span> : (
-              <select value={m.role} onChange={(e) => setMemberRole.mutate({ id: m.id, role: e.target.value })}>
-                <option value="worker">{t('worker')}</option>
-                <option value="owner">{t('owner')}</option>
-              </select>
-            )}
-          </li>
-        ))}
+        {(members.data ?? []).map((m) => {
+          const perms = (m.permissions ?? {}) as Record<string, boolean>
+          return (
+            <li key={m.id} className="member">
+              <div className="row">
+                <div className="grow">{m.email}{m.user_id === session?.user.id ? ` (${t('you')})` : ''}</div>
+                {m.user_id === session?.user.id ? <span className="small">{t('owner')}</span> : (
+                  <select value={m.role} onChange={(e) => setMemberRole.mutate({ id: m.id, role: e.target.value })}>
+                    <option value="worker">{t('worker')}</option>
+                    <option value="owner">{t('owner')}</option>
+                  </select>
+                )}
+              </div>
+              {m.role === 'worker' && (
+                <div className="perm-list">
+                  <span className="tiny muted">{t('workerMayAlso')}</span>
+                  {PERMISSIONS.map((p) => (
+                    <label key={p} className="check small">
+                      <input type="checkbox" checked={!!perms[p]}
+                        onChange={(e) => setPermissions.mutate({ id: m.id, permissions: { ...perms, [p]: e.target.checked } })} />
+                      {t(`perm_${p}` as DictKey)}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </li>
+          )
+        })}
         {(invites.data ?? []).map((i) => (
           <li key={i.id} className="row">
             <div className="grow">{i.email}<div className="small muted">{t('invited')} · {i.role === 'owner' ? t('owner') : t('worker')}</div></div>
@@ -315,7 +340,7 @@ function TeamSection() {
         </label>
         <button className="btn" disabled={invite.isPending}>{t('invite')}</button>
       </form>
-      <ErrorText error={invite.error ?? setMemberRole.error ?? cancelInvite.error} />
+      <ErrorText error={invite.error ?? setMemberRole.error ?? cancelInvite.error ?? setPermissions.error} />
     </Section>
   )
 }

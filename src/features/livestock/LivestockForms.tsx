@@ -117,7 +117,8 @@ function GroupForm({ group }: { group?: Group }) {
 
 function EventForm({ group, recordId }: { group: Group; recordId?: string }) {
   const { t, lang } = useI18n()
-  const { isOwner } = useFarm()
+  const { can } = useFarm()
+  const canEdit = can('animal_records')
   const farmId = useFarmId()
   const navigate = useNavigate()
   const invalidate = useInvalidate()
@@ -192,7 +193,7 @@ function EventForm({ group, recordId }: { group: Group; recordId?: string }) {
     <FormShell back={back} subtitle={group.name} title={existing ? `${t('editRecord')}: ${t(`ev_${type}` as DictKey)}` : t('addEvent')}>
       <p className="muted">{group.name} · {group.quantity} {t('head')}</p>
       <form className="card stack" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
-        <fieldset className="crop-picker four" disabled={!isOwner}>
+        <fieldset className="crop-picker four" disabled={!canEdit}>
           <legend>{t('eventType')}</legend>
           {EVENT_TYPES.map((k) => (
             <button key={k} type="button" className={`crop-tile ${type === k ? 'on' : ''}`} aria-pressed={type === k} onClick={() => setType(k)}>
@@ -200,10 +201,10 @@ function EventForm({ group, recordId }: { group: Group; recordId?: string }) {
             </button>
           ))}
         </fieldset>
-        <label>{t('date')}<input type="date" value={f.date} disabled={!isOwner} onChange={(e) => setF({ ...f, date: e.target.value })} /></label>
+        <label>{t('date')}<input type="date" value={f.date} disabled={!canEdit} onChange={(e) => setF({ ...f, date: e.target.value })} /></label>
         {animals.length > 0 && (
           <label>{t('tag')}
-            <select value={f.animal} disabled={!isOwner} onChange={(e) => setF({ ...f, animal: e.target.value })}>
+            <select value={f.animal} disabled={!canEdit} onChange={(e) => setF({ ...f, animal: e.target.value })}>
               <option value="">{t('groups')}: {group.name}</option>
               {animals.map((a) => <option key={a.id} value={a.id}>{a.tag}</option>)}
             </select>
@@ -211,18 +212,18 @@ function EventForm({ group, recordId }: { group: Group; recordId?: string }) {
         )}
         {!f.animal && (
           <label>{t('howMany')}
-            <input inputMode="numeric" value={f.quantity} disabled={!isOwner} placeholder={countChange(type, 1) === 0 ? String(group.quantity) : ''}
+            <input inputMode="numeric" value={f.quantity} disabled={!canEdit} placeholder={countChange(type, 1) === 0 ? String(group.quantity) : ''}
               onChange={(e) => setF({ ...f, quantity: e.target.value })} />
           </label>
         )}
-        {type === 'weighing' && <label>{t('weightKg')}<input inputMode="decimal" value={f.weight} disabled={!isOwner} onChange={(e) => setF({ ...f, weight: e.target.value })} /></label>}
+        {type === 'weighing' && <label>{t('weightKg')}<input inputMode="decimal" value={f.weight} disabled={!canEdit} onChange={(e) => setF({ ...f, weight: e.target.value })} /></label>}
         {(type === 'vaccination' || type === 'dosing' || type === 'other') && (
-          <label>{type === 'other' ? t('whatWasDone') : t('productUsed')}<input value={f.product} disabled={!isOwner} onChange={(e) => setF({ ...f, product: e.target.value })} /></label>
+          <label>{type === 'other' ? t('whatWasDone') : t('productUsed')}<input value={f.product} disabled={!canEdit} onChange={(e) => setF({ ...f, product: e.target.value })} /></label>
         )}
         {type === 'moved' && (
           <>
             <label>{t('toCamp')}
-              <select value={f.toCamp} disabled={!isOwner} onChange={(e) => setF({ ...f, toCamp: e.target.value })}>
+              <select value={f.toCamp} disabled={!canEdit} onChange={(e) => setF({ ...f, toCamp: e.target.value })}>
                 <option value="">–</option>
                 {(camps.data ?? []).filter((c) => c.id !== group.camp_id || c.id === f.toCamp).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -237,12 +238,12 @@ function EventForm({ group, recordId }: { group: Group; recordId?: string }) {
           <label>{t('nextDue')}<input type="date" value={f.nextDue} onChange={(e) => setF({ ...f, nextDue: e.target.value })} /></label>
         )}
         {(type === 'vaccination' || type === 'dosing') && <p className="advice">{t('vetAdvice')}</p>}
-        <label>{t('notes')}<textarea rows={2} value={f.notes} disabled={!isOwner} onChange={(e) => setF({ ...f, notes: e.target.value })} /></label>
+        <label>{t('notes')}<textarea rows={2} value={f.notes} disabled={!canEdit} onChange={(e) => setF({ ...f, notes: e.target.value })} /></label>
         {existing && <p className="tiny muted">{formatDate(existing.date, lang)} · {t('editNoRecount')}</p>}
-        {isOwner && <button className="btn primary" disabled={save.isPending || (type === 'moved' && !f.toCamp)}>{save.isPending ? t('saving') : t('save')}</button>}
+        {canEdit && <button className="btn primary" disabled={save.isPending || (type === 'moved' && !f.toCamp)}>{save.isPending ? t('saving') : t('save')}</button>}
         <ErrorText error={save.error} />
       </form>
-      {isOwner && existing && (
+      {canEdit && existing && (
         <button className="btn danger" disabled={remove.isPending} onClick={() => confirm(t('removeRecordConfirm')) && remove.mutate()}>{t('removeRecord')}</button>
       )}
     </FormShell>
@@ -251,7 +252,8 @@ function EventForm({ group, recordId }: { group: Group; recordId?: string }) {
 
 function BreedingForm({ group, recordId }: { group: Group; recordId?: string }) {
   const { t, lang } = useI18n()
-  const { isOwner } = useFarm()
+  const { can } = useFarm()
+  const canEdit = can('animal_records')
   const farmId = useFarmId()
   const navigate = useNavigate()
   const invalidate = useInvalidate()
@@ -306,35 +308,36 @@ function BreedingForm({ group, recordId }: { group: Group; recordId?: string }) 
     <FormShell back={back} subtitle={group.name} title={existing ? `${t('editPlan')}: ${t('cal_joining')}` : t('addBreeding')}>
       <form className="card stack" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
         <div className="grid2">
-          <label>{t('joiningStart')}<input type="date" required value={f.start} disabled={!isOwner} onChange={(e) => setF({ ...f, start: e.target.value })} /></label>
-          <label>{t('joiningEnd')}<input type="date" value={f.end} disabled={!isOwner} onChange={(e) => setF({ ...f, end: e.target.value })} /></label>
+          <label>{t('joiningStart')}<input type="date" required value={f.start} disabled={!canEdit} onChange={(e) => setF({ ...f, start: e.target.value })} /></label>
+          <label>{t('joiningEnd')}<input type="date" value={f.end} disabled={!canEdit} onChange={(e) => setF({ ...f, end: e.target.value })} /></label>
         </div>
         <div className="grid2">
-          <label>{t('gestationLabel')}<input inputMode="numeric" value={f.days} disabled={!isOwner} onChange={(e) => setF({ ...f, days: e.target.value })} /></label>
-          <label>{t('males')}<input inputMode="numeric" value={f.males} disabled={!isOwner} onChange={(e) => setF({ ...f, males: e.target.value })} /></label>
+          <label>{t('gestationLabel')}<input inputMode="numeric" value={f.days} disabled={!canEdit} onChange={(e) => setF({ ...f, days: e.target.value })} /></label>
+          <label>{t('males')}<input inputMode="numeric" value={f.males} disabled={!canEdit} onChange={(e) => setF({ ...f, males: e.target.value })} /></label>
         </div>
         <div className="grid2">
-          <label>{t('birthFrom', { what })}<input type="date" value={birthStart} disabled={!isOwner}
+          <label>{t('birthFrom', { what })}<input type="date" value={birthStart} disabled={!canEdit}
             onChange={(e) => { setTouched(true); setF({ ...f, birthStart: e.target.value, birthEnd: birthEnd }) }} /></label>
-          <label>{t('birthTo', { what })}<input type="date" value={birthEnd} disabled={!isOwner}
+          <label>{t('birthTo', { what })}<input type="date" value={birthEnd} disabled={!canEdit}
             onChange={(e) => { setTouched(true); setF({ ...f, birthEnd: e.target.value, birthStart: birthStart }) }} /></label>
         </div>
         <span className="hint">{t('breedingCalcNote')}</span>
         {!existing && calc && (
           <label className="check"><input type="checkbox" checked={reminder} onChange={(e) => setReminder(e.target.checked)} /> {t('prepareReminder', { what, date: formatDate(calc.prepareBy, lang) })}</label>
         )}
-        <label>{t('notes')}<textarea rows={2} value={f.notes} disabled={!isOwner} onChange={(e) => setF({ ...f, notes: e.target.value })} /></label>
-        {isOwner && <button className="btn primary" disabled={save.isPending}>{save.isPending ? t('saving') : t('save')}</button>}
+        <label>{t('notes')}<textarea rows={2} value={f.notes} disabled={!canEdit} onChange={(e) => setF({ ...f, notes: e.target.value })} /></label>
+        {canEdit && <button className="btn primary" disabled={save.isPending}>{save.isPending ? t('saving') : t('save')}</button>}
         <ErrorText error={save.error} />
       </form>
-      {isOwner && existing && <button className="btn danger" onClick={() => confirm(t('removeRecordConfirm')) && remove.mutate()}>{t('removeRecord')}</button>}
+      {canEdit && existing && <button className="btn danger" onClick={() => confirm(t('removeRecordConfirm')) && remove.mutate()}>{t('removeRecord')}</button>}
     </FormShell>
   )
 }
 
 function ShearingForm({ group, recordId }: { group: Group; recordId?: string }) {
   const { t } = useI18n()
-  const { isOwner } = useFarm()
+  const { can } = useFarm()
+  const canEdit = can('animal_records')
   const farmId = useFarmId()
   const navigate = useNavigate()
   const invalidate = useInvalidate()
@@ -365,24 +368,25 @@ function ShearingForm({ group, recordId }: { group: Group; recordId?: string }) 
   return (
     <FormShell back={back} subtitle={group.name} title={existing ? `${t('editPlan')}: ${t('cal_shearing')}` : t('addShearing')}>
       <form className="card stack" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
-        <label>{t('plannedDate')}<input type="date" required value={f.planned} disabled={!isOwner} onChange={(e) => setF({ ...f, planned: e.target.value })} /></label>
+        <label>{t('plannedDate')}<input type="date" required value={f.planned} disabled={!canEdit} onChange={(e) => setF({ ...f, planned: e.target.value })} /></label>
         <div className="grid2">
-          <label>{t('doneDate')}<input type="date" value={f.done} disabled={!isOwner} onChange={(e) => setF({ ...f, done: e.target.value })} /></label>
-          <label>{t('kgWool')}<input inputMode="decimal" value={f.kg} disabled={!isOwner} onChange={(e) => setF({ ...f, kg: e.target.value })} /></label>
+          <label>{t('doneDate')}<input type="date" value={f.done} disabled={!canEdit} onChange={(e) => setF({ ...f, done: e.target.value })} /></label>
+          <label>{t('kgWool')}<input inputMode="decimal" value={f.kg} disabled={!canEdit} onChange={(e) => setF({ ...f, kg: e.target.value })} /></label>
         </div>
-        {!f.done && isOwner && <button type="button" className="btn" onClick={() => setF({ ...f, done: todayIso() })}>✓ {t('shorn')} ({t('isToday')})</button>}
-        <label>{t('notes')}<textarea rows={2} value={f.notes} disabled={!isOwner} onChange={(e) => setF({ ...f, notes: e.target.value })} /></label>
-        {isOwner && <button className="btn primary" disabled={save.isPending}>{save.isPending ? t('saving') : t('save')}</button>}
+        {!f.done && canEdit && <button type="button" className="btn" onClick={() => setF({ ...f, done: todayIso() })}>✓ {t('shorn')} ({t('isToday')})</button>}
+        <label>{t('notes')}<textarea rows={2} value={f.notes} disabled={!canEdit} onChange={(e) => setF({ ...f, notes: e.target.value })} /></label>
+        {canEdit && <button className="btn primary" disabled={save.isPending}>{save.isPending ? t('saving') : t('save')}</button>}
         <ErrorText error={save.error} />
       </form>
-      {isOwner && existing && <button className="btn danger" onClick={() => confirm(t('removeRecordConfirm')) && remove.mutate()}>{t('removeRecord')}</button>}
+      {canEdit && existing && <button className="btn danger" onClick={() => confirm(t('removeRecordConfirm')) && remove.mutate()}>{t('removeRecord')}</button>}
     </FormShell>
   )
 }
 
 function AnimalForm({ group, recordId }: { group: Group; recordId?: string }) {
   const { t } = useI18n()
-  const { isOwner } = useFarm()
+  const { can } = useFarm()
+  const canEdit = can('animal_records')
   const farmId = useFarmId()
   const navigate = useNavigate()
   const invalidate = useInvalidate()
@@ -414,23 +418,23 @@ function AnimalForm({ group, recordId }: { group: Group; recordId?: string }) {
   return (
     <FormShell back={back} subtitle={group.name} title={existing ? `${t('tag')} ${existing.tag}` : t('addAnimal')}>
       <form className="card stack" onSubmit={(e) => { e.preventDefault(); save.mutate() }}>
-        <label>{t('tag')}<input required value={f.tag} disabled={!isOwner} onChange={(e) => setF({ ...f, tag: e.target.value })} /></label>
+        <label>{t('tag')}<input required value={f.tag} disabled={!canEdit} onChange={(e) => setF({ ...f, tag: e.target.value })} /></label>
         <div className="grid2">
           <label>{t('sex')}
-            <select value={f.sex} disabled={!isOwner} onChange={(e) => setF({ ...f, sex: e.target.value })}>
+            <select value={f.sex} disabled={!canEdit} onChange={(e) => setF({ ...f, sex: e.target.value })}>
               <option value="female">{t('female')}</option><option value="male">{t('male')}</option>
             </select>
           </label>
-          <label>{t('birthDate')}<input type="date" value={f.birth} disabled={!isOwner} onChange={(e) => setF({ ...f, birth: e.target.value })} /></label>
+          <label>{t('birthDate')}<input type="date" value={f.birth} disabled={!canEdit} onChange={(e) => setF({ ...f, birth: e.target.value })} /></label>
         </div>
         <label>{t('status')}
-          <select value={f.status} disabled={!isOwner} onChange={(e) => setF({ ...f, status: e.target.value })}>
+          <select value={f.status} disabled={!canEdit} onChange={(e) => setF({ ...f, status: e.target.value })}>
             {['alive', 'sold', 'dead'].map((s) => <option key={s} value={s}>{t(`st_${s}` as DictKey)}</option>)}
           </select>
         </label>
         {delta !== 0 && <label className="check"><input type="checkbox" checked={adjust} onChange={(e) => setAdjust(e.target.checked)} /> {t('adjustCount', { from: group.quantity, to: Math.max(0, group.quantity + delta) })}</label>}
-        <label>{t('notes')}<textarea rows={2} value={f.notes} disabled={!isOwner} onChange={(e) => setF({ ...f, notes: e.target.value })} /></label>
-        {isOwner && <button className="btn primary" disabled={save.isPending}>{save.isPending ? t('saving') : t('save')}</button>}
+        <label>{t('notes')}<textarea rows={2} value={f.notes} disabled={!canEdit} onChange={(e) => setF({ ...f, notes: e.target.value })} /></label>
+        {canEdit && <button className="btn primary" disabled={save.isPending}>{save.isPending ? t('saving') : t('save')}</button>}
         <ErrorText error={save.error} />
       </form>
     </FormShell>

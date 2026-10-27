@@ -186,4 +186,14 @@ supabase/
 - **Setup:** create an API key at console.anthropic.com (Settings → API keys, add credit under Billing), then in Supabase:
   Edge Functions → Secrets → add `ANTHROPIC_API_KEY`. Never put the key in the app or the repository.
 
-### Phase 6: grazing and minerals, offline entry, worker permissions (next)
+### Phase 6: grazing and minerals, rotation, offline entry, worker permissions (done)
+- **Grazing & minerals** (Menu): pasture tests per camp (protein, P, Ca, Mg as % of dry matter), the animals grazing each camp,
+  and supplement suggestions from editable advice rules (5 starting rules per farm, e.g. low phosphorus → phosphate lick,
+  low magnesium for cattle → grass tetany risk). Always shown as advice to confirm with a vet or animal nutritionist.
+- **Crop rotation advice** on each field page from its history: same crop repeated, long cereal runs, canola or lupins too soon; plus crops that could fit next season.
+- **No signal:** changes made offline wait and are sent automatically when signal returns (a blue banner shows how many are waiting).
+  The app must stay open until they are sent; reading recent data offline already worked.
+- **Worker permissions** (Settings → People): per worker, switch on recording field work, animal events, tasks or pasture tests.
+  Enforced by the database (`private.can`), not just the screens. Workers with animal permission can change a group's count and camp only.
+  Workers never get access to sales, invoices, costs, customers or settings.
+- Weather alerts (frost, heavy rain, strong wind, heat) were added with the weather update.

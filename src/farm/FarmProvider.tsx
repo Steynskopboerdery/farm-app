@@ -4,7 +4,9 @@ import { useAuth } from '../auth/AuthProvider'
 import { supabase, type Tables } from '../lib/supabase'
 
 export type Role = 'owner' | 'worker'
-export interface Membership { role: Role; farm: Tables<'farms'> }
+export type Permission = 'field_records' | 'animal_records' | 'tasks' | 'pasture'
+export const PERMISSIONS: Permission[] = ['field_records', 'animal_records', 'tasks', 'pasture']
+export interface Membership { role: Role; permissions: Partial<Record<Permission, boolean>>; farm: Tables<'farms'> }
 
 interface FarmState {
   /** Every farm this person belongs to. */
@@ -12,6 +14,8 @@ interface FarmState {
   farm: Tables<'farms'> | null
   role: Role | null
   isOwner: boolean
+  /** Owners can do everything; workers only what the owner switched on for them. */
+  can: (perm: Permission) => boolean
   /** The real role, even while an owner is previewing worker mode. */
   realRole: Role | null
   previewingWorker: boolean
@@ -54,14 +58,14 @@ export function FarmProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('farm_members')
-        .select('role, farm:farms(*)')
+        .select('role, permissions, farm:farms(*)')
         .eq('user_id', userId!)
         .is('deleted_at', null)
         .order('created_at')
       if (error) throw error
       return (data ?? [])
         .filter((m) => m.farm && !m.farm.deleted_at)
-        .map((m) => ({ role: m.role as Role, farm: m.farm! }))
+        .map((m) => ({ role: m.role as Role, permissions: (m.permissions ?? {}) as Membership['permissions'], farm: m.farm! }))
         .sort((a, b) => a.farm.name.localeCompare(b.farm.name))
     },
   })
@@ -97,6 +101,8 @@ export function FarmProvider({ children }: { children: ReactNode }) {
     farm: current?.farm ?? null,
     role,
     isOwner: role === 'owner',
+    // While previewing, an owner sees a worker with no extra permissions.
+    can: (perm) => role === 'owner' || (!previewingWorker && !!current?.permissions[perm]),
     realRole,
     previewingWorker,
     setPreviewWorker,

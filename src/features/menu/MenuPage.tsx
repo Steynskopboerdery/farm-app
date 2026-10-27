@@ -7,7 +7,7 @@ const TILES: { to: string | null; label: DictKey; emoji: string; ownerOnly?: boo
   { to: '/weather', label: 'weather', emoji: '⛅' },
   { to: '/reports', label: 'menuReports', emoji: '📊', ownerOnly: true },
   { to: '/inventory', label: 'menuInventory', emoji: '📦' },
-  { to: null, label: 'menuGrazing', emoji: '🌿', phase: 6 },
+  { to: '/grazing', label: 'menuGrazing', emoji: '🌿' },
   { to: '/settings', label: 'navSettings', emoji: '⚙️' },
 ]
 

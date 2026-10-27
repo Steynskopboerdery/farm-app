@@ -5,16 +5,17 @@ import { formatHa } from '../lib/format'
 import { useI18n, type DictKey } from '../lib/i18n'
 import { useCurrentPlantings, useFields, useGroups } from '../lib/queries'
 import { AnimalIcon } from './AnimalIcon'
+import { useFarm, type Permission } from '../farm/FarmProvider'
 
 type Kind = 'spray' | 'fertiliser' | 'harvest' | 'planting' | 'other' | 'reminder' | 'animal'
-const KINDS: { kind: Kind; label: DictKey; emoji: string }[] = [
-  { kind: 'spray', label: 'sprays', emoji: '💧' },
-  { kind: 'fertiliser', label: 'fertiliser', emoji: '🌱' },
-  { kind: 'harvest', label: 'harvestTitle', emoji: '🌾' },
-  { kind: 'planting', label: 'plantingTitle', emoji: '🚜' },
-  { kind: 'other', label: 'otherWork', emoji: '🛠' },
-  { kind: 'reminder', label: 'reminders', emoji: '⏰' },
-  { kind: 'animal', label: 'animalEvent', emoji: '🐑' },
+const KINDS: { kind: Kind; label: DictKey; emoji: string; perm: Permission }[] = [
+  { kind: 'spray', label: 'sprays', emoji: '💧', perm: 'field_records' },
+  { kind: 'fertiliser', label: 'fertiliser', emoji: '🌱', perm: 'field_records' },
+  { kind: 'harvest', label: 'harvestTitle', emoji: '🌾', perm: 'field_records' },
+  { kind: 'planting', label: 'plantingTitle', emoji: '🚜', perm: 'field_records' },
+  { kind: 'other', label: 'otherWork', emoji: '🛠', perm: 'field_records' },
+  { kind: 'reminder', label: 'reminders', emoji: '⏰', perm: 'tasks' },
+  { kind: 'animal', label: 'animalEvent', emoji: '🐑', perm: 'animal_records' },
 ]
 
 /** Bottom sheet behind the green + button: pick what to record, then which field. */
@@ -24,6 +25,7 @@ export function QuickAddSheet({ onClose }: { onClose: () => void }) {
   const fields = useFields()
   const plantings = useCurrentPlantings()
   const groups = useGroups()
+  const { can } = useFarm()
   const [kind, setKind] = useState<Kind | null>(null)
 
   function pick(fieldId: string) {
@@ -41,7 +43,7 @@ export function QuickAddSheet({ onClose }: { onClose: () => void }) {
         </div>
         {!kind ? (
           <div className="kind-grid">
-            {KINDS.map((k) => (
+            {KINDS.filter((k) => can(k.perm)).map((k) => (
               <button key={k.kind} className="kind-btn" onClick={() => setKind(k.kind)}>
                 <span className="kind-emoji" aria-hidden="true">{k.emoji}</span>
                 <span>{t(k.label)}</span>

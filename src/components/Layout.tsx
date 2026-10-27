@@ -1,3 +1,4 @@
+import { useMutationState } from '@tanstack/react-query'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useFarm } from '../farm/FarmProvider'
@@ -25,8 +26,11 @@ export function Icon({ d, size = 24 }: { d: string; size?: number }) {
 
 export function Layout() {
   const { t } = useI18n()
-  const { farm, isOwner, previewingWorker, setPreviewWorker } = useFarm()
+  const { farm, can, previewingWorker, setPreviewWorker } = useFarm()
+  // The + button shows for anyone who may record something.
+  const canAdd = can('field_records') || can('animal_records') || can('tasks')
   const online = useOnline()
+  const waiting = useMutationState({ filters: { status: 'pending' }, select: (m) => m.state.isPaused }).filter(Boolean).length
   const { pathname } = useLocation()
   const [adding, setAdding] = useState(false)
   // The home screen has its own green header.
@@ -45,6 +49,7 @@ export function Layout() {
         </header>
       )}
       {!online && <div className="offline-bar">{t('offline')}</div>}
+      {waiting > 0 && <div className="offline-bar waiting">⏳ {t('offlineWaiting', { n: waiting })}</div>}
       {previewingWorker && (
         <div className="preview-bar">
           <span>👁 {t('previewingWorker')}</span>
@@ -54,10 +59,10 @@ export function Layout() {
       <main className="content">
         <Outlet />
       </main>
-      <nav className={`tabbar ${isOwner ? 'with-fab' : ''}`}>
+      <nav className={`tabbar ${canAdd ? 'with-fab' : ''}`}>
         <NavLink to="/" end><Icon d={icons.home} /><span>{t('navHome')}</span></NavLink>
         <NavLink to="/map"><Icon d={icons.map} /><span>{t('navMap')}</span></NavLink>
-        {isOwner && (
+        {canAdd && (
           <button type="button" className="fab" aria-label={t('quickAdd')} onClick={() => setAdding(true)}>
             <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" /></svg>
           </button>

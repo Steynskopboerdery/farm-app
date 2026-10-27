@@ -56,7 +56,8 @@ a { color: var(--brand-2); }
 .topbar-title { font-weight: 800; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .preview-bar { position: sticky; top: calc(var(--topbar) + env(safe-area-inset-top)); z-index: 999; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px 8px 16px; background: var(--brand); color: #fff; font-weight: 700; font-size: .92rem; }
 .no-topbar .preview-bar { top: 0; padding-top: calc(8px + env(safe-area-inset-top)); }
-.offline-bar { background: var(--warn-bg); color: var(--warn); padding: 8px 16px; font-weight: 700; }
+.offline-bar { position: sticky; top: calc(var(--topbar) + env(safe-area-inset-top)); z-index: 998; background: var(--warn-bg); color: var(--warn); padding: 8px 16px; font-weight: 700; }
+.no-topbar .offline-bar { top: 0; }
 .content { flex: 1; padding-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom) + 28px); }
 
 /* Floating bottom menu with the + button */
@@ -432,3 +433,23 @@ details.card[open] > summary::after { content: '▴'; }
 .map-overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; z-index: 450; pointer-events: none; mix-blend-mode: multiply; }
 .overlay-bar { position: absolute; top: 12px; left: 64px; right: 140px; z-index: 950; display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,.95); border-radius: 14px; padding: 6px 10px; box-shadow: 0 4px 14px rgba(0,0,0,.3); flex-wrap: wrap; }
 .overlay-bar input[type='range'] { flex: 1; min-width: 80px; min-height: 0; padding: 0; border: 0; background: none; }
+
+.member { padding: 8px 0; }
+.perm-list { display: flex; flex-direction: column; padding-left: 8px; }
+.perm-list label.check { min-height: 44px; font-weight: 600; }
+
+/* Grazing, minerals, rotation, offline */
+.nutrients { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.nutrient { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 14px; background: var(--soft); }
+.nutrient.low { background: #fff3e3; color: var(--warn); }
+.advice-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.advice-list li { background: #fff8e6; border-radius: 12px; padding: 10px 12px; }
+.advice-list li.ok { background: var(--soft); }
+.graze-chip, .rot-chip { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-size: .88rem; min-height: 40px; padding: 0 12px 0 6px; }
+.subcard.off { opacity: .55; }
+.row.wrap { flex-wrap: wrap; gap: 8px; }
+.offline-bar.waiting { background: #e6f0ff; color: #1d4ed8; }
+
+.member .row { flex-wrap: wrap; }
+.member .row .grow { min-width: 60%; word-break: break-all; }
+.member select { width: auto; min-width: 150px; }
