@@ -54,6 +54,18 @@ In the Supabase dashboard for **farm-app**:
 3. **Passwords:** anyone can set a password under **Settings → Password**, then log in on another device with email + password, with no email needed. A login link only works from the newest email: asking for a new one cancels the old links.
 4. **Email sending limits:** Supabase's built-in email service sends only a few emails per hour, and only to people on your Supabase team. That's fine for you alone. Before workers log in, connect a free email service (for example Resend) under **Authentication → Emails → SMTP Settings**.
 
+## Put it online (Cloudflare Pages, free; recommended)
+
+Netlify's free plan allows only about 20 updates a month (15 of 300 credits per deploy), so the app can also be hosted on Cloudflare Pages:
+
+1. Sign up at dash.cloudflare.com → **Workers & Pages → Create → Pages → Connect to Git** → choose `farm-app`.
+2. Framework preset: **Vite** (or: build command `npm run build`, output directory `dist`).
+3. Environment variable `NODE_VERSION` = `22` (no Supabase variables needed).
+4. **Save and Deploy**. The link looks like `https://farm-app-xxx.pages.dev`.
+5. In Supabase → Authentication → URL Configuration: set that link as **Site URL** and add `<link>/**` to **Redirect URLs**.
+
+`public/_redirects` makes every path load the app (same as `netlify.toml` does on Netlify).
+
 ## Put it online (Netlify, free)
 
 1. Sign up at [netlify.com](https://app.netlify.com/signup) with your GitHub account.
