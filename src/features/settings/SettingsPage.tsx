@@ -5,6 +5,7 @@ import { LanguageSwitch } from '../../components/LanguageSwitch'
 import { ErrorText, numOrNull, Section, textOrNull } from '../../components/ui'
 import { useFarm, useFarmId } from '../../farm/FarmProvider'
 import { useI18n } from '../../lib/i18n'
+import { PasswordSection } from './PasswordSection'
 import { useFarmSettings, useFields, useGroups, useInvites, useMembers, useSeasons, useSpecies } from '../../lib/queries'
 import { supabase, type Tables } from '../../lib/supabase'
 
@@ -28,6 +29,7 @@ export function SettingsPage() {
           <SampleSection />
         </>
       )}
+      <PasswordSection />
       <section className="card stack">
         <p className="muted">{session?.user.email}</p>
         <button className="btn" onClick={() => supabase.auth.signOut()}>{t('signOut')}</button>

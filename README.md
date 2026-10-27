@@ -51,7 +51,8 @@ In the Supabase dashboard for **farm-app**:
    - **Site URL:** your Netlify link, for example `https://farmplans.netlify.app`.
    - **Redirect URLs:** add `https://farmplans.netlify.app/**` and `http://localhost:3000/**`.
 2. **Authentication → Emails → Magic Link** template: add the line `Your code: {{ .Token }}` so the email also contains a 6-digit code. On an iPhone, the installed app can't open email links, so you type the code instead.
-3. **Email sending limits:** Supabase's built-in email service sends only a few emails per hour, and only to people on your Supabase team. That's fine for you alone. Before workers log in, connect a free email service (for example Resend) under **Authentication → Emails → SMTP Settings**.
+3. **Passwords:** anyone can set a password under **Settings → Password**, then log in on another device with email + password, with no email needed. A login link only works from the newest email: asking for a new one cancels the old links.
+4. **Email sending limits:** Supabase's built-in email service sends only a few emails per hour, and only to people on your Supabase team. That's fine for you alone. Before workers log in, connect a free email service (for example Resend) under **Authentication → Emails → SMTP Settings**.
 
 ## Put it online (Netlify, free)
 
@@ -111,7 +112,7 @@ supabase/
 
 ### Phase 1: setup, login, map (done)
 - Database for the whole farm (all tables for later phases too), with each farm's data kept private and a change history.
-- Login by email link or 6-digit code. Owner and worker roles; invite people by email.
+- Login by email link, or by password once one is set in Settings. Owner and worker roles; invite people by email.
 - Farm settings: business details, VAT, invoice numbering, bank details, seasons with a notes box per year, pregnancy lengths.
 - Fields and camps: list, add, edit, remove (hidden, history kept).
 - Satellite map: see all outlines coloured by crop (camps dashed green), tap for details, draw / edit / remove outlines. Hectares are calculated from the outline. "My location" button.
