@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '../../auth/AuthProvider'
-import { LanguageSwitch } from '../../components/LanguageSwitch'
+import { LanguageSwitch, VersionLabel } from '../../components/LanguageSwitch'
 import { ErrorText, numOrNull, Section, textOrNull } from '../../components/ui'
 import { useFarm, useFarmId } from '../../farm/FarmProvider'
 import { useI18n } from '../../lib/i18n'
@@ -34,6 +34,7 @@ export function SettingsPage() {
         <p className="muted">{session?.user.email}</p>
         <button className="btn" onClick={() => supabase.auth.signOut()}>{t('signOut')}</button>
       </section>
+      <VersionLabel />
     </div>
   )
 }

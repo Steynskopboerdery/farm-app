@@ -3,7 +3,11 @@ import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
+// Netlify sets COMMIT_REF to the GitHub commit being built; shown in the app so we can tell which version is live.
+const version = (process.env.COMMIT_REF ?? 'local').slice(0, 7)
+
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(version) },
   server: { port: 3000 },
   preview: { port: 3000 },
   plugins: [

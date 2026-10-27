@@ -9,3 +9,7 @@ export function LanguageSwitch() {
     </div>
   )
 }
+
+export function VersionLabel() {
+  return <p className="tiny muted center">Version {__APP_VERSION__}</p>
+}

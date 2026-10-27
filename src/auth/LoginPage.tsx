@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { LanguageSwitch } from '../components/LanguageSwitch'
+import { LanguageSwitch, VersionLabel } from '../components/LanguageSwitch'
 import { useI18n, type DictKey } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 
@@ -130,6 +130,7 @@ export function LoginPage() {
         </form>
       )}
       <LanguageSwitch />
+      <VersionLabel />
     </div>
   )
 }
