@@ -158,5 +158,14 @@ supabase/
 - Calendar for the next 12 months (joining, lambing, calving, shearing, reminders) with countdowns; the next five also on the home screen.
 - Camp pages list the animals grazing there. Quick add (+) has "Animal event".
 
-### Phase 4: sales and invoices (next)
-Customers, sales, PDF invoices, payments and debtors.
+### Phase 4: sales and invoices (done)
+- **Menu** (☰ at the top, and on the home photo): Sales & invoices, Weather, Settings; Reports, Inventory and Grazing tiles show their coming phase.
+- Customers (name, contact, phone, email, address, VAT number) with their invoices and what they owe.
+- New invoice: customer (or add a new one on the spot), date, pay-by date (from payment terms in Settings), lines with quantity, unit and price,
+  VAT per line at the farm's rate (or none if not VAT registered), live totals. Numbers come from the database (`next_invoice_number`), so they never repeat.
+- Invoice page: on-screen preview, **Share** (WhatsApp/email via the phone's share menu) or **Download PDF** (A4, made in the app with @react-pdf/renderer).
+  "TAX INVOICE" when VAT registered; farm, VAT and bank details from Settings. A copy is kept in the private `invoices` Storage bucket (owners only).
+- Draft → Sent → Paid. Record payments (full or part); the balance updates and the invoice turns Paid when covered. Drafts can be edited or deleted; sent invoices are locked.
+- Debtors: what each customer owes on sent invoices, days overdue, totals; "Unpaid invoices" card on the home screen for owners. Workers never see sales.
+
+### Phase 5: reports, inventory and costs (next)

@@ -381,3 +381,39 @@ details.card[open] > summary::after { content: '▴'; }
 .tag-chip { font-weight: 800; font-size: .85rem; background: #fff7d6; border: 1.5px solid #f2d36b; color: #5c4400; padding: 4px 10px; border-radius: 8px; min-width: 92px; text-align: center; }
 .badge.st-sold { background: #fff4cc; color: #7a5b00; }
 .badge.st-dead { background: #fde2e2; color: #9b1c1c; }
+
+/* Menu, sales and invoices */
+.menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.menu-tile { display: flex; flex-direction: column; gap: 8px; padding: 18px; min-height: 120px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); color: var(--ink); text-decoration: none; font-weight: 750; }
+.menu-tile.soon { opacity: .6; }
+.menu-emoji { font-size: 2rem; }
+.grid3 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .8fr) minmax(0, 1.2fr); gap: 8px; align-items: end; }
+.grid3 > label, .grid3 input, .grid3 select { min-width: 0; }
+.plain-btn { font: inherit; border: 0; text-align: left; cursor: pointer; }
+.notice.good { background: #e7f7d8; color: #24510f; }
+.farm-avatar.small { width: 38px; height: 38px; border-radius: 12px; font-size: 1rem; }
+.status { display: inline-block; font-size: .72rem; font-weight: 800; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: .04em; }
+.status-draft { background: #eef2f7; color: #475569; }
+.status-sent { background: #fff4cc; color: #7a5b00; }
+.status-paid { background: #e7f7d8; color: #24510f; }
+.money-card { color: var(--ink); text-decoration: none; }
+.money-row { display: flex; justify-content: space-between; gap: 12px; }
+.line-edit { gap: 10px; }
+.inv-totals { display: flex; flex-direction: column; gap: 4px; margin-left: auto; min-width: 220px; }
+.inv-totals > div { display: flex; justify-content: space-between; gap: 16px; }
+.inv-totals .inv-grand { font-weight: 800; border-top: 2px solid var(--brand); padding-top: 6px; margin-top: 2px; font-size: 1.05rem; }
+.inv-totals.screen { width: 100%; }
+.invoice-paper { background: #fff; border-radius: 6px; padding: 22px 18px; box-shadow: 0 2px 14px rgba(0,0,0,.12); font-size: .82rem; display: flex; flex-direction: column; gap: 14px; color: #111; }
+.inv-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.inv-seller { font-size: 1.15rem; font-weight: 800; color: var(--brand); }
+.inv-title { text-align: right; margin-left: auto; }
+.inv-kind { font-size: 1.1rem; font-weight: 800; color: var(--brand); letter-spacing: .04em; }
+.inv-pre { white-space: pre-line; }
+.inv-label { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: #666; font-weight: 700; margin-bottom: 2px; }
+.inv-bill { background: #f2f5ef; padding: 10px 12px; border-radius: 6px; }
+.inv-table { width: 100%; border-collapse: collapse; }
+.inv-table th { background: var(--brand); color: #fff; text-align: left; padding: 6px; font-size: .74rem; }
+.inv-table td { padding: 7px 6px; border-bottom: 1px solid #ddd; vertical-align: top; }
+.inv-table .num { text-align: right; white-space: nowrap; }
+.inv-bank { border: 1px solid #ccc; border-radius: 6px; padding: 10px 12px; }
+.inv-foot { text-align: center; color: #666; font-size: .72rem; }

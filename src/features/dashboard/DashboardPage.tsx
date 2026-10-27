@@ -15,6 +15,9 @@ import { countdown, useLivestockCalendar } from '../livestock/LivestockCalendar'
 import { supabase } from '../../lib/supabase'
 import { WeatherCard, WeatherNow } from '../weather/WeatherCard'
 import { HeroPhoto } from './HeroPhoto'
+import { debtorsByCustomer } from '../../lib/calc/debtors'
+import { useInvoices } from '../../lib/sales'
+import { formatZar } from '../../lib/format'
 import { CropIcon } from '../../components/CropIcon'
 
 function greeting(hour: number) {
@@ -34,7 +37,7 @@ function StatIcon({ d }: { d: string }) {
 
 export function DashboardPage() {
   const { t, w, lang } = useI18n()
-  const { farm } = useFarm()
+  const { farm, isOwner } = useFarm()
   const fields = useFields()
   const camps = useCamps()
   const plantings = useCurrentPlantings()
@@ -130,6 +133,8 @@ export function DashboardPage() {
           </ul>
         </Section>
       )}
+
+      {isOwner && <UnpaidInvoicesCard />}
 
       <WeatherCard />
 
@@ -239,5 +244,27 @@ export function DashboardPage() {
         )}
       </Section>
     </div>
+  )
+}
+
+function UnpaidInvoicesCard() {
+  const { t, lang } = useI18n()
+  const invoices = useInvoices()
+  const today = todayIso()
+  const debtors = debtorsByCustomer(invoices.data ?? [], today)
+  const owed = debtors.reduce((s, d) => s + d.owed, 0)
+  const overdue = debtors.reduce((s, d) => s + d.overdue, 0)
+  const count = debtors.reduce((s, d) => s + d.invoices, 0)
+  const drafts = (invoices.data ?? []).filter((i) => i.status === 'draft').length
+  if (!invoices.data || (count === 0 && drafts === 0)) return null
+  return (
+    <Link to="/sales?tab=debtors" className="card money-card">
+      <div className="card-head"><h2>🧾 {t('unpaidInvoices')}</h2><span className="link-more">{t('seeAll')} ›</span></div>
+      <div className="money-row">
+        <div><div className="stat-n">{formatZar(owed, lang)}</div><div className="stat-l">{t('invoicesCount', { n: count })}</div></div>
+        {overdue > 0 && <div className="right"><div className="stat-n warn-text">{formatZar(overdue, lang)}</div><div className="stat-l">{t('overdueTotal')}</div></div>}
+      </div>
+      {drafts > 0 && <div className="small muted">{drafts} × {t('status_draft').toLowerCase()}</div>}
+    </Link>
   )
 }

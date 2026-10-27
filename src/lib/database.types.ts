@@ -1869,6 +1869,7 @@ export type Database = {
         Returns: string
       }
       load_sample_data: { Args: { p_farm: string }; Returns: undefined }
+      next_invoice_number: { Args: { p_farm: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

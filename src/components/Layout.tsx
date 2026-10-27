@@ -10,10 +10,11 @@ const icons = {
   map: 'M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zm0 0v14m6-12v14',
   land: 'M4 20c3-6 13-6 16 0M6 15c3-4 9-4 12 0M8 10c2-2.5 6-2.5 8 0M12 4v4',
   animals: 'M7 14a5 4 0 0 0 10 0 5 4 0 0 0-10 0zM5 12a2 2 0 1 1 0-4M9 18v2M15 18v2M17 10c1.5-.5 2.5-2 2-3.5',
+  menu: 'M4 6h16M4 12h16M4 18h16',
   settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7.3 7.3 0 0 0-2-1.2L14.5 3h-4l-.4 2.6a7.3 7.3 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7.3 7.3 0 0 0 2 1.2l.4 2.6h4l.4-2.6a7.3 7.3 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z',
 }
 
-export const SETTINGS_ICON = icons.settings
+export const MENU_ICON = icons.menu
 
 export function Icon({ d, size = 24 }: { d: string; size?: number }) {
   return (
@@ -40,7 +41,7 @@ export function Layout() {
             <span className="topbar-title">{farm?.name ?? t('appName')}</span>
             <span className="switch-caret" aria-hidden="true">▾</span>
           </NavLink>
-          <NavLink to="/settings" className="gear" aria-label={t('navSettings')}><Icon d={icons.settings} size={24} /></NavLink>
+          <NavLink to="/menu" className="gear" aria-label={t('menu')}><Icon d={icons.menu} size={24} /></NavLink>
         </header>
       )}
       {!online && <div className="offline-bar">{t('offline')}</div>}

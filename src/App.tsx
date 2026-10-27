@@ -17,6 +17,11 @@ import { WeatherPage } from './features/weather/WeatherPage'
 import { GroupPage } from './features/livestock/GroupPage'
 import { LivestockFormPage } from './features/livestock/LivestockForms'
 import { LivestockPage } from './features/livestock/LivestockPage'
+import { MenuPage } from './features/menu/MenuPage'
+import { CustomerFormPage } from './features/sales/CustomerFormPage'
+import { InvoiceFormPage } from './features/sales/InvoiceFormPage'
+import { InvoicePage } from './features/sales/InvoicePage'
+import { SalesPage } from './features/sales/SalesPage'
 
 // The map library is large, so it loads only when the map is opened.
 const MapPage = lazy(() => import('./features/map/MapPage').then((m) => ({ default: m.MapPage })))
@@ -57,6 +62,12 @@ export default function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="weather" element={<WeatherPage />} />
           <Route path="farms" element={<FarmChooser inApp />} />
+          <Route path="menu" element={<MenuPage />} />
+          <Route path="sales" element={<SalesPage />} />
+          <Route path="sales/new" element={<InvoiceFormPage />} />
+          <Route path="sales/invoice/:id" element={<InvoicePage />} />
+          <Route path="sales/invoice/:id/edit" element={<InvoiceFormPage />} />
+          <Route path="sales/customer/:id" element={<CustomerFormPage />} />
           <Route path="livestock" element={<LivestockPage />} />
           <Route path="livestock/new" element={<LivestockFormPage kind="new" />} />
           <Route path="livestock/group/:id" element={<GroupPage />} />

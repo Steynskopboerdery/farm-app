@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { LanguageSwitch, VersionLabel } from '../../components/LanguageSwitch'
 import { ErrorText, numOrNull, Section, textOrNull } from '../../components/ui'
@@ -19,6 +20,7 @@ export function SettingsPage() {
 
   return (
     <div className="page stack">
+      <Link to="/menu" className="back">‹ {t('menu')}</Link>
       <h1>{t('settingsTitle')}</h1>
       <Section title={t('language')}><LanguageSwitch /></Section>
       {!isOwner && !previewingWorker && <p className="notice">{t('workerNote')}</p>}
