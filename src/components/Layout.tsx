@@ -21,7 +21,7 @@ export function Icon({ d, size = 24 }: { d: string; size?: number }) {
 
 export function Layout() {
   const { t } = useI18n()
-  const { farm, isOwner } = useFarm()
+  const { farm, isOwner, previewingWorker, setPreviewWorker } = useFarm()
   const online = useOnline()
   const { pathname } = useLocation()
   const [adding, setAdding] = useState(false)
@@ -29,7 +29,7 @@ export function Layout() {
   const showTopbar = pathname !== '/'
 
   return (
-    <div className={`shell ${pathname === '/map' ? 'on-map' : ''}`}>
+    <div className={`shell ${pathname === '/map' ? 'on-map' : ''} ${showTopbar ? '' : 'no-topbar'}`}>
       {showTopbar && (
         <header className="topbar">
           <img src="/icon.svg" alt="" width={30} height={30} />
@@ -37,6 +37,12 @@ export function Layout() {
         </header>
       )}
       {!online && <div className="offline-bar">{t('offline')}</div>}
+      {previewingWorker && (
+        <div className="preview-bar">
+          <span>👁 {t('previewingWorker')}</span>
+          <button className="btn small lime" onClick={() => setPreviewWorker(false)}>{t('backToOwner')}</button>
+        </div>
+      )}
       <main className="content">
         <Outlet />
       </main>

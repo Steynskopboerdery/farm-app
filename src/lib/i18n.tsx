@@ -310,6 +310,11 @@ const en = {
   useFieldsCentre: 'Use the middle of my fields',
   locationSaved: 'Location saved',
   imageryCredit: 'Imagery © Esri',
+  workerView: 'Worker view',
+  workerViewHelp: 'See the app exactly as a worker sees it: no money, no bank details, no editing. Only your screen changes.',
+  viewAsWorker: 'View as worker',
+  previewingWorker: 'You are viewing the app as a worker',
+  backToOwner: 'Back to owner',
 }
 
 export type DictKey = keyof typeof en
@@ -613,6 +618,11 @@ const af: Record<DictKey, string> = {
   useFieldsCentre: 'Gebruik die middel van my lande',
   locationSaved: 'Ligging gestoor',
   imageryCredit: 'Beelde © Esri',
+  workerView: 'Werker-aansig',
+  workerViewHelp: 'Sien die app net soos ’n werker dit sien: geen geld, geen bankbesonderhede, geen wysigings nie. Net jou skerm verander.',
+  viewAsWorker: 'Kyk as werker',
+  previewingWorker: 'Jy kyk na die app as ’n werker',
+  backToOwner: 'Terug na eienaar',
 }
 
 const dicts: Record<Lang, Record<DictKey, string>> = { en, af }

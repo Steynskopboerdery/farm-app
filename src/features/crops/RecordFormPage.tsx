@@ -226,7 +226,7 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
               {input('seedRate', t('seedRate'), { mode: 'decimal' })}
               {input('seedKg', t('seedTotal'), { mode: 'decimal', onInput: () => setSeedTouched(true) })}
             </div>
-            {input('seedCost', t('seedCost'), { mode: 'decimal' })}
+            {isOwner && input('seedCost', t('seedCost'), { mode: 'decimal' })}
             {!existing && f.expected && (
               <label className="check">
                 <input type="checkbox" checked={f.reminder === 'yes'} onChange={(e) => set('reminder', e.target.checked ? 'yes' : '')} />
@@ -254,10 +254,10 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
                   mode: 'decimal', onInput: () => setTotalTouched(true),
                   help: ha ? t('totalHelp', { ha: formatHa(ha, lang) }) : undefined,
                 })}
-                {input('price', t('pricePer', { unit }), { mode: 'decimal' })}
+                {isOwner && input('price', t('pricePer', { unit }), { mode: 'decimal' })}
               </>
             )}
-            {input('cost', t('cost'), { mode: 'decimal' })}
+            {isOwner && input('cost', t('cost'), { mode: 'decimal' })}
             {type === 'spray' && (
               <>
                 {input('whp', t('withholdingDays'), { mode: 'numeric' })}

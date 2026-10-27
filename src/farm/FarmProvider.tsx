@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { createContext, useContext, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase, type Tables } from '../lib/supabase'
 
@@ -9,12 +9,17 @@ interface FarmState {
   farm: Tables<'farms'> | null
   role: Role | null
   isOwner: boolean
+  /** The real role, even while an owner is previewing worker mode. */
+  realRole: Role | null
+  previewingWorker: boolean
+  setPreviewWorker: (on: boolean) => void
   loading: boolean
   error: unknown
   refresh: () => void
 }
 
 const Ctx = createContext<FarmState | null>(null)
+const PREVIEW_KEY = 'farm.previewWorker'
 
 export function FarmProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth()
@@ -53,11 +58,26 @@ export function FarmProvider({ children }: { children: ReactNode }) {
     if (!userId) qc.clear()
   }, [userId, qc])
 
-  const role = (membership.data?.role as Role | undefined) ?? null
+  // Owners can preview what workers see. This only changes the screens: the database
+  // still treats them as owner, so nothing is locked out by mistake.
+  const [previewWorker, setPreviewWorkerState] = useState(() => {
+    try { return localStorage.getItem(PREVIEW_KEY) === '1' } catch { return false }
+  })
+  const setPreviewWorker = (on: boolean) => {
+    setPreviewWorkerState(on)
+    try { localStorage.setItem(PREVIEW_KEY, on ? '1' : '0') } catch { /* private mode */ }
+  }
+
+  const realRole = (membership.data?.role as Role | undefined) ?? null
+  const previewingWorker = realRole === 'owner' && previewWorker
+  const role: Role | null = previewingWorker ? 'worker' : realRole
   const value: FarmState = {
     farm: membership.data?.farm ?? null,
     role,
     isOwner: role === 'owner',
+    realRole,
+    previewingWorker,
+    setPreviewWorker,
     loading: !!userId && (invites.isLoading || membership.isLoading),
     error: membership.error,
     refresh: () => qc.invalidateQueries({ queryKey: ['membership'] }),

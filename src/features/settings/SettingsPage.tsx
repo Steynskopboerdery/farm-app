@@ -14,14 +14,23 @@ import { supabase, type Tables } from '../../lib/supabase'
 
 export function SettingsPage() {
   const { t } = useI18n()
-  const { isOwner } = useFarm()
+  const { isOwner, realRole, previewingWorker, setPreviewWorker } = useFarm()
   const { session } = useAuth()
 
   return (
     <div className="page stack">
       <h1>{t('settingsTitle')}</h1>
       <Section title={t('language')}><LanguageSwitch /></Section>
-      {!isOwner && <p className="notice">{t('workerNote')}</p>}
+      {!isOwner && !previewingWorker && <p className="notice">{t('workerNote')}</p>}
+      {realRole === 'owner' && (
+        <section className="card stack">
+          <h2>{t('workerView')}</h2>
+          <p className="small muted">{t('workerViewHelp')}</p>
+          {previewingWorker
+            ? <button className="btn lime" onClick={() => setPreviewWorker(false)}>{t('backToOwner')}</button>
+            : <button className="btn" onClick={() => setPreviewWorker(true)}>👁 {t('viewAsWorker')}</button>}
+        </section>
+      )}
       {isOwner && (
         <>
           <FarmSection />

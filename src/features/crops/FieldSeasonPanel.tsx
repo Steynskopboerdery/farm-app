@@ -57,7 +57,7 @@ export function FieldSeasonPanel({ fieldId, fieldName, hectares }: { fieldId: st
                 <div className="small">{t('safeFrom')}: <strong>{formatDateShort(safeHarvestDate({ product: o.product, date: o.date, withholdingPeriodDays: o.withholding_period_days }), lang)}</strong></div>
               ) : null}
             </div>
-            <div className="right small">{formatZar(o.cost, lang)}</div>
+            {isOwner && <div className="right small">{formatZar(o.cost, lang)}</div>}
             <span className="chev">›</span>
           </Link>
         </li>
@@ -99,7 +99,7 @@ export function FieldSeasonPanel({ fieldId, fieldName, hectares }: { fieldId: st
               <div className="small muted">
                 {planting.seed_kg != null && `${formatNumber(planting.seed_kg, 0, lang)} kg`}
                 {planting.seed_kg != null && hectares ? ` (${formatNumber(planting.seed_kg / hectares, 1, lang)} kg/ha)` : ''}
-                {planting.seed_cost != null && ` · ${formatZar(planting.seed_cost, lang)}`}
+                {isOwner && planting.seed_cost != null && ` · ${formatZar(planting.seed_cost, lang)}`}
               </div>
             </div>
             <span className="chev">›</span>
@@ -139,15 +139,20 @@ export function FieldSeasonPanel({ fieldId, fieldName, hectares }: { fieldId: st
 
       <Section title={t('summary')}>
         <dl className="facts">
-          <dt>{t('seedUsed')}</dt><dd>{formatNumber(summary.seedKg, 0, lang)} kg · {formatZar(summary.seedCost, lang)}</dd>
+          <dt>{t('seedUsed')}</dt><dd>{formatNumber(summary.seedKg, 0, lang)} kg{isOwner ? ` · ${formatZar(summary.seedCost, lang)}` : ''}</dd>
           {summary.products.map((p) => (
             <FactRow key={`${p.product}|${p.unit}`} label={p.product} value={`${formatNumber(p.total, 1, lang)} ${p.unit}`} />
           ))}
-          <dt>{t('fertiliserCost')}</dt><dd>{formatZar(summary.fertiliserCost, lang)}</dd>
-          <dt>{t('sprayCost')}</dt><dd>{formatZar(summary.sprayCost, lang)} ({summary.sprayCount}×)</dd>
-          <dt>{t('otherCost')}</dt><dd>{formatZar(summary.otherCost, lang)}</dd>
-          <dt><strong>{t('totalCost')}</strong></dt><dd><strong>{formatZar(summary.totalCost, lang)}</strong></dd>
-          <dt>{t('costPerHa')}</dt><dd>{formatZar(summary.costPerHa, lang)}</dd>
+          {/* Workers don't see money. */}
+          {isOwner && (
+            <>
+              <dt>{t('fertiliserCost')}</dt><dd>{formatZar(summary.fertiliserCost, lang)}</dd>
+              <dt>{t('sprayCost')}</dt><dd>{formatZar(summary.sprayCost, lang)} ({summary.sprayCount}×)</dd>
+              <dt>{t('otherCost')}</dt><dd>{formatZar(summary.otherCost, lang)}</dd>
+              <dt><strong>{t('totalCost')}</strong></dt><dd><strong>{formatZar(summary.totalCost, lang)}</strong></dd>
+              <dt>{t('costPerHa')}</dt><dd>{formatZar(summary.costPerHa, lang)}</dd>
+            </>
+          )}
           <dt><strong>{t('tonsTotal')}</strong></dt>
           <dd><strong>{summary.tons ? `${formatNumber(summary.tons, 2, lang)} t` : '–'}</strong>{summary.yieldPerHa != null && ` · ${formatNumber(summary.yieldPerHa, 2, lang)} t/ha`}</dd>
         </dl>
@@ -171,6 +176,7 @@ function SeasonHistory({ records, hectares, seasonId, onPick }: {
   onPick: (id: string) => void
 }) {
   const { t, w, lang } = useI18n()
+  const { isOwner } = useFarm()
   const seasons = useSeasons()
   const rows = (seasons.data ?? []).map((s) => {
     const pick = <T extends { season_id: string | null }>(l: T[] | undefined) => (l ?? []).filter((r) => r.season_id === s.id)
@@ -182,7 +188,7 @@ function SeasonHistory({ records, hectares, seasonId, onPick }: {
     <Section title={t('seasonHistory')}>
       <div className="table-wrap">
         <table className="table">
-          <thead><tr><th>{t('year')}</th><th>{t('crop')}</th><th className="num">t/ha</th><th className="num">t</th><th className="num">R/ha</th></tr></thead>
+          <thead><tr><th>{t('year')}</th><th>{t('crop')}</th><th className="num">t/ha</th><th className="num">t</th>{isOwner && <th className="num">R/ha</th>}</tr></thead>
           <tbody>
             {rows.map(({ season, sum }) => (
               <tr key={season.id} className={season.id === seasonId ? 'on' : ''} onClick={() => onPick(season.id)}>
@@ -190,7 +196,7 @@ function SeasonHistory({ records, hectares, seasonId, onPick }: {
                 <td>{sum.crop ? w(sum.crop) : '–'}</td>
                 <td className="num">{sum.yieldPerHa != null ? formatNumber(sum.yieldPerHa, 2, lang) : '–'}</td>
                 <td className="num">{sum.tons ? formatNumber(sum.tons, 1, lang) : '–'}</td>
-                <td className="num">{sum.costPerHa != null ? formatNumber(sum.costPerHa, 0, lang) : '–'}</td>
+                {isOwner && <td className="num">{sum.costPerHa != null ? formatNumber(sum.costPerHa, 0, lang) : '–'}</td>}
               </tr>
             ))}
           </tbody>
