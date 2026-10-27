@@ -125,12 +125,18 @@ export function useInvites(enabled = true) {
   })
 }
 
-export function useAuditLog(table: string, recordId: string | undefined, enabled = true) {
+export function useAuditLog(table: string, recordId: string | undefined, enabled = true, withChildren = false) {
   const farmId = useFarmId()
   return useQuery({
-    queryKey: ['audit_log', farmId, table, recordId],
+    queryKey: ['audit_log', farmId, table, recordId, withChildren],
     enabled: enabled && !!recordId,
-    queryFn: () => run(supabase.from('audit_log').select('*').eq('farm_id', farmId).eq('table_name', table)
-      .eq('record_id', recordId!).order('changed_at', { ascending: false }).limit(50)),
+    queryFn: () => {
+      let q = supabase.from('audit_log').select('*').eq('farm_id', farmId)
+      // For a field, also show changes to its plantings, field work and harvests.
+      q = withChildren
+        ? q.or(`and(table_name.eq.${table},record_id.eq.${recordId}),new_data->>field_id.eq.${recordId},old_data->>field_id.eq.${recordId}`)
+        : q.eq('table_name', table).eq('record_id', recordId!)
+      return run(q.order('changed_at', { ascending: false }).limit(60))
+    },
   })
 }

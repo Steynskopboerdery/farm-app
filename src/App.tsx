@@ -6,6 +6,7 @@ import { Layout } from './components/Layout'
 import { ErrorText, Loading } from './components/ui'
 import { CreateFarmPage } from './farm/CreateFarmPage'
 import { useFarm } from './farm/FarmProvider'
+import { RecordFormPage } from './features/crops/RecordFormPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
 import { LandDetailPage } from './features/land/LandDetailPage'
 import { LandPage } from './features/land/LandPage'
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="map" element={<Suspense fallback={<Loading />}><MapPage /></Suspense>} />
           <Route path="land" element={<LandPage />} />
           <Route path="land/:kind/:id" element={<LandDetailPage />} />
+          <Route path="land/field/:id/record/:type/:recordId?" element={<RecordFormPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

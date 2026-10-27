@@ -143,3 +143,26 @@ input:disabled, textarea:disabled { background: #f2f2f2; color: var(--muted); }
 .area-label::before { display: none; }
 .leaflet-container { font: inherit; }
 .leaflet-control-zoom a { width: 44px !important; height: 44px !important; line-height: 44px !important; font-size: 22px !important; }
+
+/* Phase 2: crop records */
+.hint { font-weight: 400; font-size: 0.85rem; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; }
+.pill-info { background: #eef6ef; border: 1px solid #b9dcc0; border-radius: 10px; padding: 10px 12px; }
+.advice { font-size: 0.88rem; color: #3b3b3b; background: #f4f4f4; border-left: 4px solid #8a8a8a; padding: 8px 10px; border-radius: 6px; }
+.warning { background: #fde8e8; border: 2px solid var(--danger); color: #7a0016; border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.chip { font: inherit; font-weight: 700; min-height: 44px; padding: 0 16px; border-radius: 22px; border: 2px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; flex: none; }
+.chip.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+.season-note { background: #fff8e6; border-radius: 10px; padding: 10px 12px; }
+details.card > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; min-height: 32px; }
+details.card > summary::after { content: '▾'; font-size: 1.2rem; color: var(--muted); }
+details.card[open] > summary { margin-bottom: 12px; }
+details.card[open] > summary::after { content: '▴'; }
+.facts dt.indent { padding-left: 12px; font-size: 0.9rem; }
+.table-wrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { text-align: left; padding: 10px 6px; border-bottom: 1px solid var(--line); }
+.table th { font-size: 0.85rem; color: var(--muted); }
+.table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.table tbody tr { cursor: pointer; }
+.table tbody tr.on { background: #eef6ef; font-weight: 700; }

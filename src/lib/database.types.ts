@@ -1415,6 +1415,7 @@ export type Database = {
           notes: string | null
           planting_date: string | null
           season_id: string
+          seed_cost: number | null
           seed_kg: number | null
           updated_at: string
         }
@@ -1431,6 +1432,7 @@ export type Database = {
           notes?: string | null
           planting_date?: string | null
           season_id: string
+          seed_cost?: number | null
           seed_kg?: number | null
           updated_at?: string
         }
@@ -1447,6 +1449,7 @@ export type Database = {
           notes?: string | null
           planting_date?: string | null
           season_id?: string
+          seed_cost?: number | null
           seed_kg?: number | null
           updated_at?: string
         }

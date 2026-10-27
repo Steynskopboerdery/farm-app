@@ -4,25 +4,24 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ErrorText, Loading, numOrNull, SampleBadge, Section, textOrNull } from '../../components/ui'
 import { useFarm } from '../../farm/FarmProvider'
 import { hectaresFromBoundary, type Boundary } from '../../lib/calc/area'
-import { formatDate, formatDateTime, formatHa } from '../../lib/format'
-import { useI18n } from '../../lib/i18n'
-import { useAuditLog, useCamps, useCurrentPlantings, useFields, useMembers } from '../../lib/queries'
+import { formatDateTime, formatHa } from '../../lib/format'
+import { useI18n, type DictKey } from '../../lib/i18n'
+import { FieldSeasonPanel } from '../crops/FieldSeasonPanel'
+import { useAuditLog, useCamps, useFields, useMembers } from '../../lib/queries'
 import { supabase } from '../../lib/supabase'
 
 export function LandDetailPage() {
   const { kind, id } = useParams<{ kind: 'field' | 'camp'; id: string }>()
   const isField = kind === 'field'
   const table = isField ? 'fields' : 'camps'
-  const { t, w, lang } = useI18n()
+  const { t, lang } = useI18n()
   const { isOwner } = useFarm()
   const navigate = useNavigate()
   const qc = useQueryClient()
   const fields = useFields()
   const camps = useCamps()
-  const plantings = useCurrentPlantings()
 
   const record = isField ? fields.data?.find((f) => f.id === id) : camps.data?.find((c) => c.id === id)
-  const planting = isField && id ? plantings.data?.get(id) : undefined
 
   const [form, setForm] = useState({ name: '', hectares: '', type: '', notes: '' })
   useEffect(() => {
@@ -75,18 +74,7 @@ export function LandDetailPage() {
       <Link to={`/land${isField ? '' : '?tab=camps'}`} className="back">‹ {t('back')}</Link>
       <h1>{record.name} <SampleBadge show={record.is_sample} /></h1>
 
-      {isField && (
-        <Section title={t('currentCrop')}>
-          {planting ? (
-            <dl className="facts">
-              <dt>{t('currentCrop')}</dt><dd>{w(planting.crop)}{planting.cultivar ? ` (${planting.cultivar})` : ''}</dd>
-              <dt>{t('plantedOn')}</dt><dd>{formatDate(planting.planting_date, lang)}</dd>
-              <dt>{t('expectedHarvest')}</dt><dd>{formatDate(planting.expected_harvest_date, lang)}</dd>
-            </dl>
-          ) : <p className="muted">{t('noCrop')}</p>}
-          <p className="small muted">{t('comingPhase2')}</p>
-        </Section>
-      )}
+      {isField && <FieldSeasonPanel fieldId={id!} fieldName={record.name} hectares={record.hectares} />}
 
       <Section title={t('outline')}>
         <p>{boundary ? t('outlineDrawn', { ha: formatHa(hectaresFromBoundary(boundary), lang) }) : t('outlineMissing')}</p>
@@ -96,7 +84,9 @@ export function LandDetailPage() {
         </div>
       </Section>
 
-      <form className="card stack" onSubmit={submit}>
+      <details className="card" open={!isField}>
+      <summary><h2>{isField ? t('fieldDetails') : t('campDetails')}</h2></summary>
+      <form className="stack" onSubmit={submit}>
         <label>{t('name')}<input required disabled={!isOwner} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
         <label>{t('hectares')}<input inputMode="decimal" disabled={!isOwner} value={form.hectares} onChange={(e) => setForm({ ...form, hectares: e.target.value })} /></label>
         <label>{isField ? t('soilType') : t('pastureType')}<input disabled={!isOwner} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} /></label>
@@ -104,8 +94,9 @@ export function LandDetailPage() {
         {isOwner && <button className="btn primary" disabled={save.isPending}>{save.isPending ? t('saving') : save.isSuccess ? `✓ ${t('saved')}` : t('save')}</button>}
         <ErrorText error={save.error} />
       </form>
+      </details>
 
-      {isOwner && <History table={table} id={id!} />}
+      {isOwner && <History table={table} id={id!} withChildren={isField} />}
 
       {isOwner && (
         <button className="btn danger" disabled={remove.isPending}
@@ -118,11 +109,11 @@ export function LandDetailPage() {
   )
 }
 
-const HIDDEN_KEYS = new Set(['updated_at', 'created_at', 'created_by', 'farm_id', 'id'])
+const HIDDEN_KEYS = new Set(['updated_at', 'created_at', 'created_by', 'farm_id', 'id', 'field_id', 'season_id', 'yield_per_ha'])
 
-function History({ table, id }: { table: string; id: string }) {
+function History({ table, id, withChildren }: { table: string; id: string; withChildren?: boolean }) {
   const { t, lang } = useI18n()
-  const log = useAuditLog(table, id)
+  const log = useAuditLog(table, id, true, withChildren)
   const members = useMembers()
   const who = (uid: string | null) => members.data?.find((m) => m.user_id === uid)?.email ?? '–'
 
@@ -139,7 +130,11 @@ function History({ table, id }: { table: string; id: string }) {
             const label = e.action === 'insert' ? t('created') : n.deleted_at && !o.deleted_at ? t('deleted') : t('updated')
             return (
               <li key={e.id} className="history-item">
-                <div><strong>{label}</strong> · {formatDateTime(e.changed_at, lang)}</div>
+                <div>
+                  <strong>{label}</strong>
+                  {e.table_name !== table && ` · ${t(`rec_${e.table_name}` as DictKey)}: ${String(n.product ?? n.crop ?? o.product ?? o.crop ?? (n.tons != null ? `${n.tons} t` : ''))}`}
+                  {' · '}{formatDateTime(e.changed_at, lang)}
+                </div>
                 <div className="small muted">{t('by')} {who(e.changed_by)}</div>
                 {changed.length > 0 && (
                   <ul className="small changes">

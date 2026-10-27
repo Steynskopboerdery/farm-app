@@ -119,5 +119,14 @@ supabase/
 - Sample data (labelled SAMPLE), loaded or removed with one button.
 - English / Afrikaans switch, installable on a phone, opens offline.
 
-### Phase 2: crop records (next)
-Plantings, fertiliser, sprays (with withholding warnings), harvests, and field history pages.
+### Phase 2: crop records (done)
+- Field page per season (tap the year chips): crop planted, fertiliser, sprays, other work, harvests.
+- Quick forms: totals fill in from rate × field size; cost from price per kg/L; yield worked out as you type.
+- Sprays show "safe to harvest from". Warnings when that is after the planned harvest date: on the field page, the harvest form, and the home screen.
+- Season totals (inputs used per product, costs, cost per hectare, tons, t/ha) and a season history table per field.
+- Reminders per field (spray, fertilise, plant, harvest), ticked off on the home screen or the field page.
+- Change history on a field now includes its plantings, field work and harvests.
+- Sample data now includes fertiliser, sprays and a 2025 season with harvests. (Remove and reload sample data in Settings to get it.)
+
+### Phase 3: livestock (next)
+Groups and animals, health events, breeding and shearing calendar, dashboard reminders.
