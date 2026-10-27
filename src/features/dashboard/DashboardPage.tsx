@@ -101,7 +101,9 @@ export function DashboardPage() {
         <div className="hero-top">
           <div>
             <p className="hero-greet">{t(greeting(new Date().getHours()))}</p>
-            <h1 className="hero-farm">{farm?.name}</h1>
+            <Link to="/farms" className="hero-farm-link" aria-label={t('switchFarm')} onPointerDown={(e) => e.stopPropagation()}>
+              <h1 className="hero-farm">{farm?.name} <span className="switch-caret">▾</span></h1>
+            </Link>
             <p className="muted-light">{formatDate(today, lang)}</p>
           </div>
           <WeatherNow />

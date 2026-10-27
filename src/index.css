@@ -1,4 +1,4 @@
-/* Farm Manager look: deep green + fresh lime, big rounded cards, soft shadows.
+/* FarmPlans look: deep green + fresh lime, big rounded cards, soft shadows.
    Light background and dark text so it stays readable in sunlight. Tap targets ≥ 48px. */
 @import '@fontsource-variable/plus-jakarta-sans';
 
@@ -315,3 +315,34 @@ details.card[open] > summary::after { content: '▴'; }
 .crop-picker legend { font-weight: 650; font-size: .95rem; margin-bottom: 6px; padding: 0; }
 .crop-tile { font: inherit; font-weight: 700; font-size: .88rem; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: var(--radius-sm); border: 1.5px solid var(--field-line); background: #fff; color: var(--ink); cursor: pointer; }
 .crop-tile.on { border-color: var(--brand); background: var(--soft); box-shadow: 0 0 0 2px var(--brand) inset; }
+
+/* FarmPlans logo, welcome screen, farm chooser */
+.logo { display: inline-flex; align-items: center; gap: .45em; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+.logo img { border-radius: 24%; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
+.splash {
+  position: fixed; inset: 0; z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px;
+  background: radial-gradient(120% 70% at 80% 0%, rgba(181,229,80,.35), transparent 60%), linear-gradient(160deg, #1f7a3f, #14532d 55%, #0b3119);
+}
+.splash-inner { display: flex; flex-direction: column; align-items: center; gap: 16px; animation: splash-in .7s ease-out both; }
+.splash-tag { color: rgba(255,255,255,.85); font-weight: 600; letter-spacing: .02em; }
+@keyframes splash-in { from { opacity: 0; transform: translateY(14px) scale(.96) } to { opacity: 1; transform: none } }
+.splash-dots { display: flex; gap: 8px; }
+.splash-dots span { width: 9px; height: 9px; border-radius: 50%; background: var(--lime); animation: dot 1s ease-in-out infinite; }
+.splash-dots span:nth-child(2) { animation-delay: .15s }
+.splash-dots span:nth-child(3) { animation-delay: .3s }
+@keyframes dot { 0%, 100% { opacity: .3; transform: scale(.8) } 50% { opacity: 1; transform: none } }
+.chooser { min-height: 100dvh; }
+.chooser-head { display: flex; justify-content: center; padding: calc(36px + env(safe-area-inset-top)) 16px 30px; border-radius: 0 0 32px 32px;
+  background: radial-gradient(120% 80% at 100% 0%, rgba(181,229,80,.35), transparent 55%), linear-gradient(160deg, #1f7a3f, #14532d 60%, #0c3a1f); margin-bottom: 8px; }
+.farm-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.farm-item { width: 100%; font: inherit; color: var(--ink); text-align: left; display: flex; align-items: center; gap: 14px; padding: 14px 16px; min-height: 72px;
+  border-radius: var(--radius); border: 1.5px solid transparent; background: var(--card); box-shadow: var(--shadow); cursor: pointer; }
+.farm-item.on { border-color: var(--brand-2); }
+.farm-avatar { width: 46px; height: 46px; border-radius: 14px; flex: none; display: grid; place-items: center; font-weight: 800; font-size: 1.2rem; color: var(--lime-ink); background: var(--lime); }
+.block { display: block; }
+.badge.owner { background: var(--soft); color: var(--brand); }
+.badge.worker { background: #eef2f7; color: #475569; }
+.add-farm { border-style: dashed; }
+.farm-switch { display: flex; align-items: center; gap: 10px; min-width: 0; color: var(--ink); text-decoration: none; min-height: 44px; }
+.switch-caret { font-size: .8em; opacity: .7; }
+.hero-farm-link { color: inherit; text-decoration: none; display: inline-block; }

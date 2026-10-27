@@ -5,7 +5,7 @@ import { useFarm } from './FarmProvider'
 
 export function CreateFarmPage() {
   const { t } = useI18n()
-  const { refresh } = useFarm()
+  const { refresh, selectFarm } = useFarm()
   const [name, setName] = useState('')
   const [location, setLocation] = useState('Near Swellendam, Western Cape')
   const [busy, setBusy] = useState(false)
@@ -14,10 +14,15 @@ export function CreateFarmPage() {
   async function submit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
-    const { error } = await supabase.rpc('create_farm', { p_name: name.trim(), p_location: location.trim() || undefined })
+    const { data, error } = await supabase.rpc('create_farm', { p_name: name.trim(), p_location: location.trim() || undefined })
+    if (error) {
+      setBusy(false)
+      setError(error.message)
+      return
+    }
+    selectFarm(data)
+    await refresh()
     setBusy(false)
-    if (error) setError(error.message)
-    else refresh()
   }
 
   return (

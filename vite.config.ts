@@ -17,8 +17,8 @@ export default defineConfig({
       injectRegister: false, // registered in src/main.tsx so updates load straight away
       includeAssets: ['icon.svg', 'apple-touch-icon.png', 'hero-default.svg'],
       manifest: {
-        name: 'Farm Manager',
-        short_name: 'Farm',
+        name: 'FarmPlans',
+        short_name: 'FarmPlans',
         description: 'Fields, crops, livestock and sales for the farm',
         lang: 'en-ZA',
         theme_color: '#1f5f2e',

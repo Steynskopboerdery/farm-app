@@ -32,8 +32,11 @@ export function Layout() {
     <div className={`shell ${pathname === '/map' ? 'on-map' : ''} ${showTopbar ? '' : 'no-topbar'}`}>
       {showTopbar && (
         <header className="topbar">
-          <img src="/icon.svg" alt="" width={30} height={30} />
-          <span className="topbar-title">{farm?.name ?? t('appName')}</span>
+          <NavLink to="/farms" className="farm-switch" aria-label={t('switchFarm')}>
+            <img src="/icon.svg" alt="" width={30} height={30} />
+            <span className="topbar-title">{farm?.name ?? t('appName')}</span>
+            <span className="switch-caret" aria-hidden="true">▾</span>
+          </NavLink>
         </header>
       )}
       {!online && <div className="offline-bar">{t('offline')}</div>}

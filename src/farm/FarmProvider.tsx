@@ -4,8 +4,11 @@ import { useAuth } from '../auth/AuthProvider'
 import { supabase, type Tables } from '../lib/supabase'
 
 export type Role = 'owner' | 'worker'
+export interface Membership { role: Role; farm: Tables<'farms'> }
 
 interface FarmState {
+  /** Every farm this person belongs to. */
+  farms: Membership[]
   farm: Tables<'farms'> | null
   role: Role | null
   isOwner: boolean
@@ -13,13 +16,21 @@ interface FarmState {
   realRole: Role | null
   previewingWorker: boolean
   setPreviewWorker: (on: boolean) => void
+  /** True when the person has several farms and hasn't picked one since opening the app. */
+  needsChoice: boolean
+  selectFarm: (farmId: string) => void
   loading: boolean
   error: unknown
-  refresh: () => void
+  refresh: () => Promise<unknown>
 }
 
 const Ctx = createContext<FarmState | null>(null)
 const PREVIEW_KEY = 'farm.previewWorker'
+const SELECTED_KEY = 'farm.selected'   // last farm used, remembered on this device
+const CHOSEN_KEY = 'farm.chosen'       // picked since the app was opened (cleared when the app closes)
+
+const read = (store: () => Storage, key: string) => { try { return store().getItem(key) } catch { return null } }
+const write = (store: () => Storage, key: string, value: string) => { try { store().setItem(key, value) } catch { /* private mode */ } }
 
 export function FarmProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth()
@@ -37,7 +48,7 @@ export function FarmProvider({ children }: { children: ReactNode }) {
     },
   })
 
-  const membership = useQuery({
+  const memberships = useQuery({
     queryKey: ['membership', userId],
     enabled: !!userId && invites.isFetched,
     queryFn: async () => {
@@ -47,10 +58,11 @@ export function FarmProvider({ children }: { children: ReactNode }) {
         .eq('user_id', userId!)
         .is('deleted_at', null)
         .order('created_at')
-        .limit(1)
-        .maybeSingle()
       if (error) throw error
-      return data
+      return (data ?? [])
+        .filter((m) => m.farm && !m.farm.deleted_at)
+        .map((m) => ({ role: m.role as Role, farm: m.farm! }))
+        .sort((a, b) => a.farm.name.localeCompare(b.farm.name))
     },
   })
 
@@ -58,28 +70,40 @@ export function FarmProvider({ children }: { children: ReactNode }) {
     if (!userId) qc.clear()
   }, [userId, qc])
 
-  // Owners can preview what workers see. This only changes the screens: the database
-  // still treats them as owner, so nothing is locked out by mistake.
-  const [previewWorker, setPreviewWorkerState] = useState(() => {
-    try { return localStorage.getItem(PREVIEW_KEY) === '1' } catch { return false }
-  })
-  const setPreviewWorker = (on: boolean) => {
-    setPreviewWorkerState(on)
-    try { localStorage.setItem(PREVIEW_KEY, on ? '1' : '0') } catch { /* private mode */ }
+  const [selectedId, setSelectedId] = useState(() => read(() => localStorage, SELECTED_KEY))
+  const [chosen, setChosen] = useState(() => read(() => sessionStorage, CHOSEN_KEY) === '1')
+  const selectFarm = (farmId: string) => {
+    setSelectedId(farmId)
+    setChosen(true)
+    write(() => localStorage, SELECTED_KEY, farmId)
+    write(() => sessionStorage, CHOSEN_KEY, '1')
   }
 
-  const realRole = (membership.data?.role as Role | undefined) ?? null
+  // Owners can preview what workers see. This only changes the screens: the database
+  // still treats them as owner, so nothing is locked out by mistake.
+  const [previewWorker, setPreviewWorkerState] = useState(() => read(() => localStorage, PREVIEW_KEY) === '1')
+  const setPreviewWorker = (on: boolean) => {
+    setPreviewWorkerState(on)
+    write(() => localStorage, PREVIEW_KEY, on ? '1' : '0')
+  }
+
+  const farms = memberships.data ?? []
+  const current = farms.find((m) => m.farm.id === selectedId) ?? (farms.length === 1 ? farms[0] : null)
+  const realRole = current?.role ?? null
   const previewingWorker = realRole === 'owner' && previewWorker
   const role: Role | null = previewingWorker ? 'worker' : realRole
   const value: FarmState = {
-    farm: membership.data?.farm ?? null,
+    farms,
+    farm: current?.farm ?? null,
     role,
     isOwner: role === 'owner',
     realRole,
     previewingWorker,
     setPreviewWorker,
-    loading: !!userId && (invites.isLoading || membership.isLoading),
-    error: membership.error,
+    needsChoice: farms.length > 1 && (!chosen || !current),
+    selectFarm,
+    loading: !!userId && (invites.isLoading || memberships.isLoading),
+    error: memberships.error,
     refresh: () => qc.invalidateQueries({ queryKey: ['membership'] }),
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

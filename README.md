@@ -1,4 +1,4 @@
-# Farm Manager
+# FarmPlans
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/382ffec5-a892-4478-9f96-8d1d7be4de0e/deploy-status)](https://app.netlify.com/projects/farmplans/deploys)
 
@@ -143,6 +143,11 @@ supabase/
 - Drawn icons for wheat, canola, barley, oats, lupins and other crops: in field lists, field cards, crop overview, quick add, and a tap-to-pick crop grid when planting.
 - Home screen photo: a drawn Overberg wheat field with a tractor by default (`public/hero-default.svg`, made for this app, free to use).
   Owners press and hold the photo (or tap 📷) to choose their own. It is shrunk to max 1600 px and stored privately in Supabase Storage (`farm-photos` bucket, folder per farm; members can view, owners can change).
+
+### Several farms (done)
+- Welcome screen with the FarmPlans logo for about 2 seconds when the app opens.
+- People with more than one farm choose a farm after the welcome screen; with one farm the app goes straight in.
+- Tap the farm name (top bar, or home header) to switch farms or add another farm. Each farm keeps its own data, people, photo and weather location.
 
 ### Phase 3: livestock (next)
 Groups and animals, health events, breeding and shearing calendar, dashboard reminders.

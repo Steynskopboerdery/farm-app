@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { LanguageSwitch, VersionLabel } from '../components/LanguageSwitch'
+import { Logo } from '../components/Logo'
 import { useI18n, type DictKey } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 
@@ -80,8 +81,7 @@ export function LoginPage() {
   return (
     <div className="page narrow login">
       <div className="login-brand">
-        <img src="/icon.svg" alt="" width={72} height={72} />
-        <h1>{t('appName')}</h1>
+        <Logo size={64} light={false} />
       </div>
       {error && <p className="notice">{error}</p>}
       {!sent && (

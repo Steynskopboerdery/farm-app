@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 export type Lang = 'en' | 'af'
 
 const en = {
-  appName: 'Farm Manager',
+  appName: 'FarmPlans',
   loading: 'Loading…',
   save: 'Save',
   saving: 'Saving…',
@@ -320,12 +320,20 @@ const en = {
   choosePhoto: 'Choose from my photos',
   defaultPhoto: 'Back to the standard picture',
   changePhoto: 'Change photo',
+  tagline: 'Your farm, planned.',
+  chooseFarm: 'Choose a farm',
+  chooseFarmHelp: 'Which farm are you working on? You can switch any time by tapping the farm name at the top.',
+  addFarm: 'Add another farm',
+  addFarmHelp: 'Each farm has its own fields, animals, records and people.',
+  switchFarm: 'Switch farm',
+  roleOwner: 'Owner',
+  roleWorker: 'Worker',
 }
 
 export type DictKey = keyof typeof en
 
 const af: Record<DictKey, string> = {
-  appName: 'Plaasbestuur',
+  appName: 'FarmPlans',
   loading: 'Laai…',
   save: 'Stoor',
   saving: 'Stoor…',
@@ -633,6 +641,14 @@ const af: Record<DictKey, string> = {
   choosePhoto: 'Kies uit my foto’s',
   defaultPhoto: 'Terug na die standaardprent',
   changePhoto: 'Verander foto',
+  tagline: 'Jou plaas, beplan.',
+  chooseFarm: 'Kies ’n plaas',
+  chooseFarmHelp: 'Op watter plaas werk jy? Jy kan enige tyd wissel deur bo op die plaasnaam te tik.',
+  addFarm: 'Voeg nog ’n plaas by',
+  addFarmHelp: 'Elke plaas het sy eie lande, diere, rekords en mense.',
+  switchFarm: 'Wissel plaas',
+  roleOwner: 'Eienaar',
+  roleWorker: 'Werker',
 }
 
 const dicts: Record<Lang, Record<DictKey, string>> = { en, af }
