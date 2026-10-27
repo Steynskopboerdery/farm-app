@@ -8,6 +8,7 @@ export function LoginPage() {
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [sent, setSent] = useState(false)
+  const [showCode, setShowCode] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -55,13 +56,20 @@ export function LoginPage() {
           <h2>{t('checkEmail')}</h2>
           <p className="muted">{t('checkEmailBody')}</p>
           <p><strong>{email}</strong></p>
-          <label>
-            {t('code')}
-            <input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6,10}" required value={code}
-              onChange={(e) => setCode(e.target.value)} />
-          </label>
-          <button className="btn primary" disabled={busy}>{t('verifyCode')}</button>
-          <button type="button" className="btn" onClick={() => { setSent(false); setCode('') }}>{t('useOtherEmail')}</button>
+          {/* A code only appears in the email once a custom email service is set up in Supabase. */}
+          {showCode ? (
+            <>
+              <label>
+                {t('code')}
+                <input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6,10}" required value={code}
+                  onChange={(e) => setCode(e.target.value)} />
+              </label>
+              <button className="btn primary" disabled={busy}>{t('verifyCode')}</button>
+            </>
+          ) : (
+            <button type="button" className="btn" onClick={() => setShowCode(true)}>{t('haveCode')}</button>
+          )}
+          <button type="button" className="btn" onClick={() => { setSent(false); setCode(''); setShowCode(false) }}>{t('useOtherEmail')}</button>
         </form>
       )}
       {error && <p className="error">{error}</p>}
