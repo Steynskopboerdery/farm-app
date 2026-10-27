@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useRef, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { Icon, SETTINGS_ICON } from '../../components/Layout'
 import { ErrorText } from '../../components/ui'
 import { useFarm } from '../../farm/FarmProvider'
 import { useI18n } from '../../lib/i18n'
@@ -82,6 +84,7 @@ export function HeroPhoto({ children }: { children: ReactNode }) {
       onContextMenu={(e) => { if (isOwner) e.preventDefault() }}
     >
       {children}
+      <Link to="/settings" className={`hero-gear ${isOwner ? '' : 'alone'}`} aria-label={t('navSettings')} onPointerDown={(e) => e.stopPropagation()}><Icon d={SETTINGS_ICON} size={22} /></Link>
       {isOwner && (
         <button type="button" className="photo-btn" aria-label={t('changePhoto')} onClick={() => setMenu(true)}>📷</button>
       )}

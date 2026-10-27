@@ -9,8 +9,9 @@ import { cropColour } from '../../lib/crops'
 import { useRecentSprays } from '../../lib/fieldRecords'
 import { formatDate, formatDateShort, formatHa, formatNumber } from '../../lib/format'
 import { centreOf, satelliteTileUrl } from '../../lib/geo'
-import { useI18n } from '../../lib/i18n'
-import { useBreedingPlans, useCamps, useCurrentPlantings, useFields, useGroups, useOpenTasks, useShearingPlans } from '../../lib/queries'
+import { useI18n, type DictKey } from '../../lib/i18n'
+import { useCamps, useCurrentPlantings, useFields, useGroups, useOpenTasks } from '../../lib/queries'
+import { countdown, useLivestockCalendar } from '../livestock/LivestockCalendar'
 import { supabase } from '../../lib/supabase'
 import { WeatherCard, WeatherNow } from '../weather/WeatherCard'
 import { HeroPhoto } from './HeroPhoto'
@@ -39,8 +40,7 @@ export function DashboardPage() {
   const plantings = useCurrentPlantings()
   const groups = useGroups()
   const tasks = useOpenTasks()
-  const breeding = useBreedingPlans()
-  const shearing = useShearingPlans()
+  const calendar = useLivestockCalendar()
   const sprays = useRecentSprays()
   const qc = useQueryClient()
   const today = todayIso()
@@ -85,15 +85,7 @@ export function DashboardPage() {
     .filter(({ p }) => p?.expected_harvest_date && p.expected_harvest_date >= addDays(today, -14) && p.expected_harvest_date <= addDays(today, 45))
     .sort((a, b) => a.p!.expected_harvest_date!.localeCompare(b.p!.expected_harvest_date!))
 
-  const upcoming = [
-    ...(breeding.data ?? []).filter((b) => b.expected_birth_end && b.expected_birth_end >= today).map((b) => ({
-      key: b.id,
-      label: `${b.group?.species === 'cattle' ? t('calving') : t('lambing')}: ${b.group?.name ?? ''}`,
-      from: b.expected_birth_start,
-      to: b.expected_birth_end,
-    })),
-    ...(shearing.data ?? []).map((s) => ({ key: s.id, label: `${t('shearing')}: ${s.group?.name ?? ''}`, from: s.planned_date, to: null as string | null })),
-  ].sort((a, b) => (a.from ?? '').localeCompare(b.from ?? ''))
+  const upcoming = calendar.filter((i) => i.kind !== 'task').slice(0, 5)
 
   return (
     <div className="page stack home">
@@ -116,8 +108,8 @@ export function DashboardPage() {
       <div className="stats">
         <Link to="/land" className="stat"><StatIcon d={STAT_ICONS.crop} /><span className="stat-n">{formatHa(cropHa, lang)}</span><span className="stat-l">{t('cropland')} · {fields.data?.length ?? 0}</span></Link>
         <Link to="/land?tab=camps" className="stat"><StatIcon d={STAT_ICONS.camp} /><span className="stat-n">{formatHa(campHa, lang)}</span><span className="stat-l">{t('grazing')} · {camps.data?.length ?? 0}</span></Link>
-        <div className="stat"><StatIcon d={STAT_ICONS.sheep} /><span className="stat-n">{formatNumber(sheep, 0, lang)}</span><span className="stat-l">{t('sheep')}</span></div>
-        <div className="stat"><StatIcon d={STAT_ICONS.cattle} /><span className="stat-n">{formatNumber(cattle, 0, lang)}</span><span className="stat-l">{t('cattle')}</span></div>
+        <Link to="/livestock" className="stat"><StatIcon d={STAT_ICONS.sheep} /><span className="stat-n">{formatNumber(sheep, 0, lang)}</span><span className="stat-l">{t('sheep')}</span></Link>
+        <Link to="/livestock" className="stat"><StatIcon d={STAT_ICONS.cattle} /><span className="stat-n">{formatNumber(cattle, 0, lang)}</span><span className="stat-l">{t('cattle')}</span></Link>
       </div>
 
       {withholding.length > 0 && (
@@ -206,13 +198,19 @@ export function DashboardPage() {
         </Section>
       )}
 
-      <Section title={t('upcoming')}>
+      <Section title={t('upcoming')} action={<Link to="/livestock" className="link-more">{t('seeAll')} ›</Link>}>
         {upcoming.length === 0 ? <p className="muted">{t('nothingPlanned')}</p> : (
           <ul className="list">
             {upcoming.map((u) => (
-              <li key={u.key} className="row">
-                <div className="grow">{u.label}</div>
-                <div className="small right">{formatDateShort(u.from, lang)}{u.to && u.to !== u.from ? ` – ${formatDateShort(u.to, lang)}` : ''}</div>
+              <li key={u.key}>
+                <Link className="row link-row" to={u.groupId ? `/livestock/group/${u.groupId}` : '/livestock'}>
+                  <span className={`cal-dot cal-${u.kind}`} aria-hidden="true" />
+                  <div className="grow">
+                    <div><strong>{t(`cal_${u.kind}` as DictKey)}</strong> · {u.title}</div>
+                    <div className="small muted">{formatDateShort(u.start, lang)}{u.end && u.end !== u.start ? ` – ${formatDateShort(u.end, lang)}` : ''}</div>
+                  </div>
+                  <span className="small countdown">{countdown(t, today, u.start, u.end)}</span>
+                </Link>
               </li>
             ))}
           </ul>

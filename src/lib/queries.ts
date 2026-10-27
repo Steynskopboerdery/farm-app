@@ -125,16 +125,17 @@ export function useInvites(enabled = true) {
   })
 }
 
-export function useAuditLog(table: string, recordId: string | undefined, enabled = true, withChildren = false) {
+export function useAuditLog(table: string, recordId: string | undefined, enabled = true, withChildren = false, childKey = 'field_id') {
   const farmId = useFarmId()
+  const children = withChildren || childKey !== 'field_id'
   return useQuery({
-    queryKey: ['audit_log', farmId, table, recordId, withChildren],
+    queryKey: ['audit_log', farmId, table, recordId, children, childKey],
     enabled: enabled && !!recordId,
     queryFn: () => {
       let q = supabase.from('audit_log').select('*').eq('farm_id', farmId)
-      // For a field, also show changes to its plantings, field work and harvests.
-      q = withChildren
-        ? q.or(`and(table_name.eq.${table},record_id.eq.${recordId}),new_data->>field_id.eq.${recordId},old_data->>field_id.eq.${recordId}`)
+      // Also show changes to records that belong to this one (a field's plantings, a group's events).
+      q = children
+        ? q.or(`and(table_name.eq.${table},record_id.eq.${recordId}),new_data->>${childKey}.eq.${recordId},old_data->>${childKey}.eq.${recordId}`)
         : q.eq('table_name', table).eq('record_id', recordId!)
       return run(q.order('changed_at', { ascending: false }).limit(60))
     },

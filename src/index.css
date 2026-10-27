@@ -132,7 +132,9 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus { outline: 3px solid rgba(181, 229, 80, .7); border-color: var(--brand-2); background: #fff; }
 input:disabled, textarea:disabled, select:disabled { background: #eef1ec; color: var(--muted); }
 .hint { font-weight: 450; font-size: 0.84rem; color: var(--muted); }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: end; }
+.grid2 > label, .grid2 input, .grid2 select { min-width: 0; }
+input[type='date'] { min-width: 0; -webkit-appearance: none; appearance: none; }
 
 /* Buttons */
 .btn {
@@ -346,3 +348,36 @@ details.card[open] > summary::after { content: '▴'; }
 .farm-switch { display: flex; align-items: center; gap: 10px; min-width: 0; color: var(--ink); text-decoration: none; min-height: 44px; }
 .switch-caret { font-size: .8em; opacity: .7; }
 .hero-farm-link { color: inherit; text-decoration: none; display: inline-block; }
+
+/* Livestock */
+.gear { margin-left: auto; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; color: var(--brand); background: var(--soft); flex: none; }
+.gear.active { background: var(--brand); color: #fff; }
+.topbar .farm-switch { flex: 1; }
+.hero-gear { position: absolute; right: 70px; bottom: 18px; width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.88); color: var(--brand); display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.hero-gear.alone { right: 16px; }
+.group-grid { display: flex; flex-direction: column; gap: 10px; }
+.group-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); color: var(--ink); text-decoration: none; }
+.group-name { font-weight: 800; font-size: 1.05rem; }
+.group-count { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+.group-count strong { font-size: 1.5rem; letter-spacing: -0.02em; }
+.group-count.big strong { font-size: 2.1rem; }
+.group-hero { flex-direction: row; align-items: center; gap: 14px; }
+.crop-picker.two { grid-template-columns: repeat(2, 1fr); }
+.crop-picker.four { grid-template-columns: repeat(4, 1fr); }
+.crop-picker.four .crop-tile { font-size: .76rem; padding: 8px 2px; }
+.crop-picker .kind-emoji { font-size: 1.5rem; }
+.calendar { display: flex; flex-direction: column; gap: 10px; }
+.cal-month-name { font-size: .82rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 4px 0 0; }
+.cal-dot, .ev-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.cal-joining { background: #8b5cf6; }
+.cal-lambing { background: #f59e0b; }
+.cal-calving { background: #92400e; }
+.cal-shearing { background: #0ea5e9; }
+.cal-task { background: #64748b; }
+.ev-birth { background: #22c55e; } .ev-vaccination { background: #3b82f6; } .ev-dosing { background: #06b6d4; }
+.ev-weighing { background: #a3a3a3; } .ev-moved { background: #8b5cf6; } .ev-sale { background: #eab308; }
+.ev-death { background: #ef4444; } .ev-other { background: #64748b; }
+.countdown { font-weight: 800; color: var(--brand-2); white-space: nowrap; background: var(--soft); padding: 4px 10px; border-radius: 999px; }
+.tag-chip { font-weight: 800; font-size: .85rem; background: #fff7d6; border: 1.5px solid #f2d36b; color: #5c4400; padding: 4px 10px; border-radius: 8px; min-width: 92px; text-align: center; }
+.badge.st-sold { background: #fff4cc; color: #7a5b00; }
+.badge.st-dead { background: #fde2e2; color: #9b1c1c; }

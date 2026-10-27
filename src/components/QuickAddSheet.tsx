@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { CropIcon } from './CropIcon'
 import { formatHa } from '../lib/format'
 import { useI18n, type DictKey } from '../lib/i18n'
-import { useCurrentPlantings, useFields } from '../lib/queries'
+import { useCurrentPlantings, useFields, useGroups } from '../lib/queries'
+import { AnimalIcon } from './AnimalIcon'
 
-type Kind = 'spray' | 'fertiliser' | 'harvest' | 'planting' | 'other' | 'reminder'
+type Kind = 'spray' | 'fertiliser' | 'harvest' | 'planting' | 'other' | 'reminder' | 'animal'
 const KINDS: { kind: Kind; label: DictKey; emoji: string }[] = [
   { kind: 'spray', label: 'sprays', emoji: '💧' },
   { kind: 'fertiliser', label: 'fertiliser', emoji: '🌱' },
@@ -13,6 +14,7 @@ const KINDS: { kind: Kind; label: DictKey; emoji: string }[] = [
   { kind: 'planting', label: 'plantingTitle', emoji: '🚜' },
   { kind: 'other', label: 'otherWork', emoji: '🛠' },
   { kind: 'reminder', label: 'reminders', emoji: '⏰' },
+  { kind: 'animal', label: 'animalEvent', emoji: '🐑' },
 ]
 
 /** Bottom sheet behind the green + button: pick what to record, then which field. */
@@ -21,6 +23,7 @@ export function QuickAddSheet({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate()
   const fields = useFields()
   const plantings = useCurrentPlantings()
+  const groups = useGroups()
   const [kind, setKind] = useState<Kind | null>(null)
 
   function pick(fieldId: string) {
@@ -33,7 +36,7 @@ export function QuickAddSheet({ onClose }: { onClose: () => void }) {
       <div className="sheet" role="dialog" aria-modal="true" aria-label={t('quickAdd')} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-handle" />
         <div className="card-head">
-          <h2>{kind ? t('chooseField') : t('quickAdd')}</h2>
+          <h2>{kind === 'animal' ? t('chooseGroup') : kind ? t('chooseField') : t('quickAdd')}</h2>
           <button className="btn small ghost" onClick={kind ? () => setKind(null) : onClose}>{kind ? `‹ ${t('back')}` : '✕'}</button>
         </div>
         {!kind ? (
@@ -45,6 +48,19 @@ export function QuickAddSheet({ onClose }: { onClose: () => void }) {
               </button>
             ))}
           </div>
+        ) : kind === 'animal' ? (
+          <ul className="list">
+            {(groups.data ?? []).map((g) => (
+              <li key={g.id}>
+                <button className="row link-row plain" onClick={() => { onClose(); navigate(`/livestock/group/${g.id}/event`) }}>
+                  <AnimalIcon species={g.species} size={34} />
+                  <span className="grow left">{g.name}<span className="small muted"> · {w(g.class)}</span></span>
+                  <span className="small muted">{g.quantity}</span>
+                  <span className="chev">›</span>
+                </button>
+              </li>
+            ))}
+          </ul>
         ) : (
           <ul className="list">
             {(fields.data ?? []).map((f) => {

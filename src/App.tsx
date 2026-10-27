@@ -14,6 +14,9 @@ import { LandDetailPage } from './features/land/LandDetailPage'
 import { LandPage } from './features/land/LandPage'
 import { SettingsPage } from './features/settings/SettingsPage'
 import { WeatherPage } from './features/weather/WeatherPage'
+import { GroupPage } from './features/livestock/GroupPage'
+import { LivestockFormPage } from './features/livestock/LivestockForms'
+import { LivestockPage } from './features/livestock/LivestockPage'
 
 // The map library is large, so it loads only when the map is opened.
 const MapPage = lazy(() => import('./features/map/MapPage').then((m) => ({ default: m.MapPage })))
@@ -54,6 +57,10 @@ export default function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="weather" element={<WeatherPage />} />
           <Route path="farms" element={<FarmChooser inApp />} />
+          <Route path="livestock" element={<LivestockPage />} />
+          <Route path="livestock/new" element={<LivestockFormPage kind="new" />} />
+          <Route path="livestock/group/:id" element={<GroupPage />} />
+          <Route path="livestock/group/:id/:kind/:recordId?" element={<LivestockFormPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

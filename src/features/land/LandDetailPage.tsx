@@ -7,7 +7,8 @@ import { hectaresFromBoundary, type Boundary } from '../../lib/calc/area'
 import { formatDateTime, formatHa } from '../../lib/format'
 import { useI18n, type DictKey } from '../../lib/i18n'
 import { FieldSeasonPanel } from '../crops/FieldSeasonPanel'
-import { useAuditLog, useCamps, useFields, useMembers } from '../../lib/queries'
+import { useAuditLog, useCamps, useFields, useGroups, useMembers } from '../../lib/queries'
+import { AnimalIcon } from '../../components/AnimalIcon'
 import { supabase } from '../../lib/supabase'
 
 export function LandDetailPage() {
@@ -75,6 +76,8 @@ export function LandDetailPage() {
       <h1>{record.name} <SampleBadge show={record.is_sample} /></h1>
 
       {isField && <FieldSeasonPanel fieldId={id!} fieldName={record.name} hectares={record.hectares} />}
+
+      {!isField && <CampAnimals campId={id!} />}
 
       <Section title={t('outline')}>
         <p>{boundary ? t('outlineDrawn', { ha: formatHa(hectaresFromBoundary(boundary), lang) }) : t('outlineMissing')}</p>
@@ -153,3 +156,27 @@ function History({ table, id, withChildren }: { table: string; id: string; withC
 }
 
 const fmt = (v: unknown) => (v == null || v === '' ? '–' : String(v))
+
+function CampAnimals({ campId }: { campId: string }) {
+  const { t, w } = useI18n()
+  const groups = useGroups()
+  const here = (groups.data ?? []).filter((g) => g.camp_id === campId)
+  return (
+    <Section title={t('animalsHere')}>
+      {here.length === 0 ? <p className="muted">{t('noEvents')}</p> : (
+        <ul className="list">
+          {here.map((g) => (
+            <li key={g.id}>
+              <Link className="row link-row" to={`/livestock/group/${g.id}`}>
+                <AnimalIcon species={g.species} size={36} />
+                <div className="grow">{g.name}<span className="small muted"> · {w(g.class)}</span></div>
+                <strong>{g.quantity}</strong>
+                <span className="chev">›</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
+  )
+}

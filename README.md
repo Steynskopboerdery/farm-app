@@ -149,5 +149,14 @@ supabase/
 - People with more than one farm choose a farm after the welcome screen; with one farm the app goes straight in.
 - Tap the farm name (top bar, or home header) to switch farms or add another farm. Each farm keeps its own data, people, photo and weather location.
 
-### Phase 3: livestock (next)
-Groups and animals, health events, breeding and shearing calendar, dashboard reminders.
+### Phase 3: livestock (done)
+- **Animals** tab (bottom menu; Settings moved to the ⚙ gear at the top): totals per species and kind, group cards with camp.
+- Group page: head count, camp, reminders, breeding (joining → lambing/calving = joining + pregnancy days, editable),
+  shearing (planned, done, kg wool), events (birth, vaccination, dosing, weighing, moved, sale, death, other), individual tagged animals, change history.
+- Births add to the count, sales and deaths take away (tick box shows old → new); moving camp updates the group's camp;
+  selling or losing a tagged animal marks it sold/dead. Vaccination/dosing can create a reminder for the next one.
+- Calendar for the next 12 months (joining, lambing, calving, shearing, reminders) with countdowns; the next five also on the home screen.
+- Camp pages list the animals grazing there. Quick add (+) has "Animal event".
+
+### Phase 4: sales and invoices (next)
+Customers, sales, PDF invoices, payments and debtors.
