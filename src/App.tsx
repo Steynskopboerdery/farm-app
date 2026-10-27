@@ -11,6 +11,7 @@ import { DashboardPage } from './features/dashboard/DashboardPage'
 import { LandDetailPage } from './features/land/LandDetailPage'
 import { LandPage } from './features/land/LandPage'
 import { SettingsPage } from './features/settings/SettingsPage'
+import { WeatherPage } from './features/weather/WeatherPage'
 
 // The map library is large, so it loads only when the map is opened.
 const MapPage = lazy(() => import('./features/map/MapPage').then((m) => ({ default: m.MapPage })))
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="land/:kind/:id" element={<LandDetailPage />} />
           <Route path="land/field/:id/record/:type/:recordId?" element={<RecordFormPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="weather" element={<WeatherPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

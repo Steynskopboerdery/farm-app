@@ -17,9 +17,9 @@ export function ErrorText({ error }: { error: unknown }) {
   return <p className="error">{t('error')}: {error instanceof Error ? error.message : String(error)}</p>
 }
 
-export function Section({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
+export function Section({ title, children, action, id }: { title: string; children: ReactNode; action?: ReactNode; id?: string }) {
   return (
-    <section className="card">
+    <section className="card" id={id}>
       <div className="card-head"><h2>{title}</h2>{action}</div>
       {children}
     </section>

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { ErrorText, Section } from '../../components/ui'
 import { useFarm, useFarmId } from '../../farm/FarmProvider'
 import { todayIso } from '../../lib/calc/dates'
@@ -208,6 +208,11 @@ function Reminders({ fieldId, fieldName }: { fieldId: string; fieldName: string 
   const farmId = useFarmId()
   const qc = useQueryClient()
   const tasks = useFieldTasks(fieldId)
+  const { hash } = useLocation()
+  // Coming from the quick-add button: jump straight to the reminder form.
+  useEffect(() => {
+    if (hash === '#reminders' && tasks.isFetched) document.getElementById('reminders')?.scrollIntoView({ behavior: 'smooth' })
+  }, [hash, tasks.isFetched])
   const [type, setType] = useState<(typeof TASK_TYPES)[number]>('spray')
   const [title, setTitle] = useState('')
   const [due, setDue] = useState(todayIso())
@@ -238,7 +243,7 @@ function Reminders({ fieldId, fieldName }: { fieldId: string; fieldName: string 
   }
 
   return (
-    <Section title={t('reminders')}>
+    <Section title={t('reminders')} id="reminders">
       {(tasks.data ?? []).length === 0 ? <p className="muted">{t('noTasks')}</p> : (
         <ul className="list">
           {tasks.data!.map((task) => (

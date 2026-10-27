@@ -105,6 +105,7 @@ src/
   lib/          database connection, calculations, text (English/Afrikaans), formatting
 supabase/
   migrations/   database tables, security rules, change history, functions
+  functions/    weather: fetches the MET Norway forecast for the app
   seed.sql      how sample data is loaded
 ```
 
@@ -127,6 +128,16 @@ supabase/
 - Reminders per field (spray, fertilise, plant, harvest), ticked off on the home screen or the field page.
 - Change history on a field now includes its plantings, field work and harvests.
 - Sample data now includes fertiliser, sprays and a 2025 season with harvests. (Remove and reload sample data in Settings to get it.)
+
+### New look and weather (done)
+- Modern design: deep green and lime, rounded cards, Plus Jakarta Sans font (built in, works offline), floating bottom menu.
+- Green **+** button: quick add a spray, fertiliser, harvest, planting, other work or reminder for any field.
+- Home: greeting header with current weather, stat tiles, field cards with satellite pictures, weather card.
+- Weather (MET Norway via the Supabase `weather` function): chance-of-rain ring, wind dial, humidity, 7-day strip with rain bars,
+  "good to spray" times (wind 3–15 km/h, dry for 3 hours, 5–30 °C, daylight), frost / heavy rain / wind / heat warnings,
+  and a full forecast page (48 hours + coming days). Set the farm's weather location in Settings.
+- Weather terms: MET Norway data is free, also for business use, under CC BY 4.0. The app shows "Weather data: MET Norway".
+  The function identifies the app to MET with a User-Agent, as MET requires.
 
 ### Phase 3: livestock (next)
 Groups and animals, health events, breeding and shearing calendar, dashboard reminders.

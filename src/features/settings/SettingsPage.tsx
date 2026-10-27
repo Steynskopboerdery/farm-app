@@ -6,7 +6,10 @@ import { ErrorText, numOrNull, Section, textOrNull } from '../../components/ui'
 import { useFarm, useFarmId } from '../../farm/FarmProvider'
 import { useI18n } from '../../lib/i18n'
 import { PasswordSection } from './PasswordSection'
-import { useFarmSettings, useFields, useGroups, useInvites, useMembers, useSeasons, useSpecies } from '../../lib/queries'
+import { centreOf } from '../../lib/geo'
+import { useFarmLocation } from '../../lib/useWeather'
+import type { Boundary } from '../../lib/calc/area'
+import { useCamps, useFarmSettings, useFields, useGroups, useInvites, useMembers, useSeasons, useSpecies } from '../../lib/queries'
 import { supabase, type Tables } from '../../lib/supabase'
 
 export function SettingsPage() {
@@ -22,6 +25,7 @@ export function SettingsPage() {
       {isOwner && (
         <>
           <FarmSection />
+          <WeatherLocationSection />
           <BusinessSection />
           <SeasonsSection />
           <SpeciesSection />
@@ -358,5 +362,48 @@ function SampleSection() {
       )}
       <ErrorText error={load.error ?? clear.error} />
     </Section>
+  )
+}
+
+function WeatherLocationSection() {
+  const { t } = useI18n()
+  const { farm, refresh } = useFarm()
+  const location = useFarmLocation()
+  const fields = useFields()
+  const camps = useCamps()
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+
+  async function saveLocation(lat: number, lng: number) {
+    const { error } = await supabase.from('farms').update({ map_center_lat: lat, map_center_lng: lng }).eq('id', farm!.id)
+    if (error) throw error
+    refresh()
+    setMessage(`✓ ${t('locationSaved')}`)
+  }
+
+  function useGps() {
+    setBusy(true)
+    setMessage(null)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => saveLocation(pos.coords.latitude, pos.coords.longitude).catch((e) => setMessage(String(e))).finally(() => setBusy(false)),
+      (err) => { setMessage(err.message); setBusy(false) },
+      { enableHighAccuracy: true, timeout: 15000 },
+    )
+  }
+
+  const fieldsCentre = centreOf([
+    ...(fields.data ?? []).map((f) => f.boundary_geojson as unknown as Boundary | null),
+    ...(camps.data ?? []).map((c) => c.boundary_geojson as unknown as Boundary | null),
+  ])
+
+  return (
+    <section className="card stack">
+      <h2>{t('weatherLocation')}</h2>
+      <p className="small muted">{t('weatherLocationHelp')}</p>
+      <p><strong>{location.lat.toFixed(4)}, {location.lng.toFixed(4)}</strong>{location.source === 'default' ? <span className="small muted"> · {t('weatherLocationDefault')}</span> : null}</p>
+      <button className="btn primary" disabled={busy} onClick={useGps}>◎ {t('useMyLocation')}</button>
+      {fieldsCentre && <button className="btn" disabled={busy} onClick={() => saveLocation(fieldsCentre[0], fieldsCentre[1]).catch((e) => setMessage(String(e)))}>{t('useFieldsCentre')}</button>}
+      {message && <p className="small">{message}</p>}
+    </section>
   )
 }
