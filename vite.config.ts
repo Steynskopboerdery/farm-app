@@ -10,6 +10,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: false, // registered in src/main.tsx so updates load straight away
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Farm Manager',
