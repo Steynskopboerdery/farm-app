@@ -3,8 +3,8 @@ import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
-// Netlify sets COMMIT_REF to the GitHub commit being built; shown in the app so we can tell which version is live.
-const version = (process.env.COMMIT_REF ?? 'local').slice(0, 7)
+// The host sets the GitHub commit being built (Cloudflare: WORKERS_CI_COMMIT_SHA, Netlify: COMMIT_REF); shown in the app so we can tell which version is live.
+const version = (process.env.WORKERS_CI_COMMIT_SHA ?? process.env.CF_PAGES_COMMIT_SHA ?? process.env.COMMIT_REF ?? 'local').slice(0, 7)
 
 export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(version) },
