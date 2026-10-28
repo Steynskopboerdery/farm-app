@@ -1,15 +1,14 @@
 # FarmPlans
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/382ffec5-a892-4478-9f96-8d1d7be4de0e/deploy-status)](https://app.netlify.com/projects/farmplans/deploys)
 
-Live app: https://farmplans.netlify.app
+Live app: https://farm-app.nbsteyn.workers.dev
 
 A phone-first farm app for a mixed crop and livestock farm near Swellendam. It covers fields and grazing camps on a satellite map, crops, animals, sales and invoices.
 
 - **App:** React + TypeScript (Vite). Installable on a phone ("Add to Home Screen") and opens offline.
 - **Database, login and files:** Supabase (Postgres with Row Level Security). Each farm only ever sees its own data.
 - **Map:** Leaflet + Geoman drawing tool + Esri World Imagery satellite photos. Free, with no billing account.
-- **Hosting:** Netlify free plan.
+- **Hosting:** Cloudflare Workers free plan (Netlify setup kept as a fallback).
 - **Languages:** English and Afrikaans. Switch on the login screen or in Settings.
 
 ---
@@ -24,7 +23,7 @@ npm run dev                    # opens on http://localhost:3000
 npm test                       # runs the calculation tests
 ```
 
-The app connects to the farm's Supabase project using the public address and *publishable* key in `src/lib/config.ts`. These are not secrets: every browser receives them, and the database security rules protect the data. To use a different project, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in `.env.local` (copy `.env.example`) or in Netlify.
+The app connects to the farm's Supabase project using the public address and *publishable* key in `src/lib/config.ts`. These are not secrets: every browser receives them, and the database security rules protect the data. To use a different project, set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in `.env.local` (copy `.env.example`) or in the host's build variables.
 
 The **secret / service_role** key must never be put in the app or the repo.
 
@@ -48,23 +47,20 @@ Records are never really deleted from the app. "Remove" hides them, and every ch
 In the Supabase dashboard for **farm-app**:
 
 1. **Authentication → URL Configuration**
-   - **Site URL:** your Netlify link, for example `https://farmplans.netlify.app`.
-   - **Redirect URLs:** add `https://farmplans.netlify.app/**` and `http://localhost:3000/**`.
+   - **Site URL:** the live link, `https://farm-app.nbsteyn.workers.dev`.
+   - **Redirect URLs:** add `https://farm-app.nbsteyn.workers.dev/**` and `http://localhost:3000/**`.
 2. **Authentication → Emails → Magic Link** template: add the line `Your code: {{ .Token }}` so the email also contains a 6-digit code. On an iPhone, the installed app can't open email links, so you type the code instead.
 3. **Passwords:** anyone can set a password under **Settings → Password**, then log in on another device with email + password, with no email needed. A login link only works from the newest email: asking for a new one cancels the old links.
 4. **Email sending limits:** Supabase's built-in email service sends only a few emails per hour, and only to people on your Supabase team. That's fine for you alone. Before workers log in, connect a free email service (for example Resend) under **Authentication → Emails → SMTP Settings**.
 
-## Put it online (Cloudflare Pages, free; recommended)
+## Put it online (Cloudflare, free; recommended)
 
-Netlify's free plan allows only about 20 updates a month (15 of 300 credits per deploy), so the app can also be hosted on Cloudflare Pages:
+Netlify's free plan allows only about 20 updates a month, so the app is hosted on Cloudflare Workers, which rebuilds for free on every push to `main`:
 
-1. Sign up at dash.cloudflare.com → **Workers & Pages → Create → Pages → Connect to Git** → choose `farm-app`.
-2. Framework preset: **Vite** (or: build command `npm run build`, output directory `dist`).
-3. Environment variable `NODE_VERSION` = `22` (no Supabase variables needed).
-4. **Save and Deploy**. The link looks like `https://farm-app-xxx.pages.dev`.
-5. In Supabase → Authentication → URL Configuration: set that link as **Site URL** and add `<link>/**` to **Redirect URLs**.
-
-`public/_redirects` makes every path load the app (same as `netlify.toml` does on Netlify).
+1. Sign up at dash.cloudflare.com → **Workers & Pages → Create → Import a repository** → choose `farm-app`.
+2. Build command `npm run build`, deploy command `npx wrangler deploy` (the defaults). No variables are needed: `wrangler.jsonc` points Cloudflare at `dist` and makes every path load the app, and `.node-version` picks Node 22.
+3. The link looks like `https://farm-app.<account>.workers.dev`.
+4. In Supabase → Authentication → URL Configuration: set that link as **Site URL** and add `<link>/**` to **Redirect URLs**.
 
 ## Put it online (Netlify, free)
 
