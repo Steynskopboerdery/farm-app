@@ -8,6 +8,8 @@ import { signedUrl } from '../../lib/farmRecords'
 import { formatDateShort, formatNumber } from '../../lib/format'
 import { useI18n, type DictKey } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
+import { saveRow } from '../../lib/outbox'
+import { QueuedNote } from '../../components/OutboxBar'
 import { DOC_KINDS, LEAVE_EMOJI, LEAVE_TYPES, uploadStaffDoc, useDiary, useLeave, useStaffDocs, type Leave, type Staff } from '../../lib/team'
 
 export function Balances({ staff, leave }: { staff: Staff; leave: Leave[] }) {
@@ -38,14 +40,20 @@ export function LeaveForm({ staff, onDone }: { staff: Staff; onDone: () => void 
   const [file, setFile] = useState<File | null>(null)
   const counted = workingDays(f.start, f.end, staff.work_days)
   const save = useMutation({
+    networkMode: 'always',  // without an attachment it is kept on the phone when there is no signal
     mutationFn: async () => {
       const days = numOrNull(f.days) ?? counted
-      const { data, error } = await supabase.from('leave_requests').insert({
-        farm_id: farmId, staff_id: staff.id, type: f.type, start_date: f.start, end_date: f.end < f.start ? f.start : f.end, days, reason: textOrNull(f.reason),
+      const id = crypto.randomUUID()
+      const row = {
+        id, farm_id: farmId, staff_id: staff.id, type: f.type, start_date: f.start, end_date: f.end < f.start ? f.start : f.end, days, reason: textOrNull(f.reason),
         ...(isOwner ? { status: 'approved', decided_at: new Date().toISOString() } : {}),
-      }).select('id').single()
+      }
+      if (!file) return saveRow('leave_requests', row)
+      if (!navigator.onLine) throw new Error(t('needsSignalForFile'))
+      const { error } = await supabase.from('leave_requests').insert(row)
       if (error) throw error
-      if (file) await uploadStaffDoc(farmId, staff.id, file, f.type === 'sick' ? 'sick_note' : 'leave_form', null, data.id)
+      await uploadStaffDoc(farmId, staff.id, file, f.type === 'sick' ? 'sick_note' : 'leave_form', null, id)
+      return { queued: false }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['leave_requests'] }); qc.invalidateQueries({ queryKey: ['staff_documents'] }); onDone() },
   })
@@ -185,10 +193,8 @@ export function DiarySection({ staff, canWrite }: { staff: Staff; canWrite: bool
   const diary = useDiary(staff.id)
   const [f, setF] = useState({ date: todayIso(), hours: '', notes: '' })
   const add = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from('work_diary').insert({ farm_id: farmId, staff_id: staff.id, date: f.date, hours: numOrNull(f.hours), notes: f.notes.trim() })
-      if (error) throw error
-    },
+    networkMode: 'always',  // kept on the phone without signal (see outbox)
+    mutationFn: () => saveRow('work_diary', { farm_id: farmId, staff_id: staff.id, date: f.date, hours: numOrNull(f.hours), notes: f.notes.trim() }),
     onSuccess: () => { setF({ ...f, hours: '', notes: '' }); qc.invalidateQueries({ queryKey: ['work_diary'] }) },
   })
   return (
@@ -201,6 +207,7 @@ export function DiarySection({ staff, canWrite }: { staff: Staff; canWrite: bool
             <label>{t('diaryHours')}<input inputMode="decimal" value={f.hours} onChange={(e) => setF({ ...f, hours: e.target.value })} /></label>
           </div>
           <button className="btn primary" disabled={add.isPending}>{t('save')}</button>
+          <QueuedNote show={!!add.data?.queued} />
           <ErrorText error={add.error} />
         </form>
       )}

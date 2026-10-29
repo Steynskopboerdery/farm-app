@@ -13,6 +13,7 @@ import { formatDateShort, formatHa, formatNumber, formatZar } from '../../lib/fo
 import { useI18n, type DictKey } from '../../lib/i18n'
 import { useSeasons } from '../../lib/queries'
 import { supabase } from '../../lib/supabase'
+import { updateRow } from '../../lib/outbox'
 import type { RecordType } from './RecordFormPage'
 import { compass } from '../../lib/weather'
 import { useRain } from '../../lib/farmRecords'
@@ -253,10 +254,8 @@ function Reminders({ fieldId, fieldName }: { fieldId: string; fieldName: string 
   })
 
   const done = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('tasks').update({ status: 'done', done_at: new Date().toISOString() }).eq('id', id)
-      if (error) throw error
-    },
+    networkMode: 'always',  // kept on the phone without signal (see outbox)
+    mutationFn: (id: string) => updateRow('tasks', id, { status: 'done', done_at: new Date().toISOString() }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
   })
 

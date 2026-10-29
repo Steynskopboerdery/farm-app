@@ -7,7 +7,9 @@ import { countDifference } from '../../lib/calc/headcount'
 import { useHeadCounts } from '../../lib/farmRecords'
 import { formatDateShort, formatNumber } from '../../lib/format'
 import { useI18n } from '../../lib/i18n'
-import { supabase, type Tables } from '../../lib/supabase'
+import type { Tables } from '../../lib/supabase'
+import { saveRow } from '../../lib/outbox'
+import { QueuedNote } from '../../components/OutboxBar'
 
 /** Count the animals in the camp and compare with the records. */
 export function HeadCountSection({ group }: { group: Tables<'livestock_groups'> }) {
@@ -22,12 +24,12 @@ export function HeadCountSection({ group }: { group: Tables<'livestock_groups'> 
   const preview = counted != null && Number.isFinite(counted) ? countDifference({ counted, expected: group.quantity }) : null
 
   const add = useMutation({
+    networkMode: 'always',  // kept on the phone without signal (see outbox)
     mutationFn: async () => {
       if (counted == null || counted < 0) throw new Error(t('hcCounted'))
-      const { error } = await supabase.from('head_counts').insert({
+      return saveRow('head_counts', {
         farm_id: farmId, group_id: group.id, camp_id: group.camp_id, date: f.date, counted, expected: group.quantity, notes: textOrNull(f.notes),
       })
-      if (error) throw error
     },
     onSuccess: () => { setOpen(false); setF({ date: todayIso(), counted: '', notes: '' }); qc.invalidateQueries({ queryKey: ['head_counts'] }) },
   })
@@ -54,6 +56,7 @@ export function HeadCountSection({ group }: { group: Tables<'livestock_groups'> 
           <ErrorText error={add.error} />
         </form>
       )}
+      <QueuedNote show={!!add.data?.queued} />
       {list.length === 0 ? <p className="muted">{t('hcNone')}</p> : (
         <ul className="list">
           {list.slice(0, 12).map((c) => {

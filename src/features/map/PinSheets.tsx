@@ -10,6 +10,7 @@ import { useI18n, type DictKey } from '../../lib/i18n'
 import { useMembers } from '../../lib/queries'
 import { supabase } from '../../lib/supabase'
 import { shrink } from '../dashboard/HeroPhoto'
+import { saveRow } from '../../lib/outbox'
 
 /** New pin: what it is, a note and a photo. */
 export function PinForm({ at, onDone, onCancel }: { at: { lat: number; lng: number }; onDone: (id: string) => void; onCancel: () => void }) {
@@ -19,10 +20,16 @@ export function PinForm({ at, onDone, onCancel }: { at: { lat: number; lng: numb
   const [f, setF] = useState({ kind: 'fence', title: '', notes: '' })
   const [photo, setPhoto] = useState<File | null>(null)
   const save = useMutation({
+    networkMode: 'always',  // without signal the pin (not the photo) is kept on the phone
     mutationFn: async () => {
-      const { data, error } = await supabase.from('map_pins').insert({
-        farm_id: farmId, kind: f.kind, title: f.title.trim() || t(`pin_${f.kind}` as DictKey), notes: textOrNull(f.notes), lat: at.lat, lng: at.lng,
-      }).select('id').single()
+      const id = crypto.randomUUID()
+      const row = { id, farm_id: farmId, kind: f.kind, title: f.title.trim() || t(`pin_${f.kind}` as DictKey), notes: textOrNull(f.notes), lat: at.lat, lng: at.lng }
+      if (!photo || !navigator.onLine) {
+        if (photo && !confirm(t('pinPhotoOffline'))) throw new Error(t('needsSignalForFile'))
+        await saveRow('map_pins', row)
+        return id
+      }
+      const { data, error } = await supabase.from('map_pins').insert(row).select('id').single()
       if (error) throw error
       if (photo) {
         const path = `${farmId}/${data.id}.jpg`

@@ -5,6 +5,7 @@ import { useFarm } from '../farm/FarmProvider'
 import { useMessagesLive, useUnread } from '../lib/team'
 import { useI18n } from '../lib/i18n'
 import { QuickAddSheet } from './QuickAddSheet'
+import { OutboxBar } from './OutboxBar'
 import { useOnline } from './useOnline'
 
 const icons = {
@@ -55,6 +56,7 @@ export function Layout() {
       )}
       {!online && <div className="offline-bar">{t('offline')}</div>}
       {waiting > 0 && <div className="offline-bar waiting">⏳ {t('offlineWaiting', { n: waiting })}</div>}
+      <OutboxBar />
       {previewingWorker && (
         <div className="preview-bar">
           <span>👁 {t('previewingWorker')}</span>

@@ -10,6 +10,7 @@ import { useI18n, type DictKey } from '../../lib/i18n'
 import { useGroupRecords, useGroupTasks } from '../../lib/livestock'
 import { useAuditLog, useCamps, useGroups, useMembers } from '../../lib/queries'
 import { supabase } from '../../lib/supabase'
+import { updateRow } from '../../lib/outbox'
 import { countdown } from './LivestockCalendar'
 import { HeadCountSection } from './HeadCountSection'
 
@@ -28,10 +29,8 @@ export function GroupPage() {
   const group = groups.data?.find((g) => g.id === id)
 
   const done = useMutation({
-    mutationFn: async (taskId: string) => {
-      const { error } = await supabase.from('tasks').update({ status: 'done', done_at: new Date().toISOString() }).eq('id', taskId)
-      if (error) throw error
-    },
+    networkMode: 'always',  // kept on the phone without signal (see outbox)
+    mutationFn: (taskId: string) => updateRow('tasks', taskId, { status: 'done', done_at: new Date().toISOString() }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
   })
 

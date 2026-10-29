@@ -12,6 +12,8 @@ import { formatDateShort, formatNumber } from '../../lib/format'
 import { useI18n, type DictKey } from '../../lib/i18n'
 import { useInventory } from '../../lib/inventory'
 import { supabase } from '../../lib/supabase'
+import { saveRow } from '../../lib/outbox'
+import { QueuedNote } from '../../components/OutboxBar'
 
 export function vehicleSummary(v: Vehicle, logs: VehicleLog[]) {
   const own = logs.filter((l) => l.vehicle_id === v.id)
@@ -136,13 +138,11 @@ export function VehiclePage() {
   const vehicle = data.data?.vehicles.find((v) => v.id === id)
 
   const add = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from('vehicle_logs').insert({
-        farm_id: farmId, vehicle_id: id!, kind: f.kind, date: f.date, litres: f.kind === 'fuel' ? numOrNull(f.litres) : null,
-        reading: numOrNull(f.reading), from_store: f.fromStore, notes: textOrNull(f.notes),
-      })
-      if (error) throw error
-    },
+    networkMode: 'always',  // kept on the phone without signal (see outbox)
+    mutationFn: () => saveRow('vehicle_logs', {
+      farm_id: farmId, vehicle_id: id!, kind: f.kind, date: f.date, litres: f.kind === 'fuel' ? numOrNull(f.litres) : null,
+      reading: numOrNull(f.reading), from_store: f.fromStore, notes: textOrNull(f.notes),
+    }),
     onSuccess: () => { setF({ ...f, litres: '', reading: '', notes: '' }); qc.invalidateQueries({ queryKey: ['vehicles'] }); qc.invalidateQueries({ queryKey: ['inventory'] }) },
   })
   const remove = useMutation({
@@ -189,6 +189,7 @@ export function VehiclePage() {
         )}
         <label>{f.kind === 'fuel' ? t('notes') : t('whatWasDone')}<input value={f.notes} required={f.kind !== 'fuel'} onChange={(e) => setF({ ...f, notes: e.target.value })} /></label>
         <button className="btn primary" disabled={add.isPending}>{add.isPending ? t('saving') : t('save')}</button>
+        <QueuedNote show={!!add.data?.queued} />
         <ErrorText error={add.error} />
       </form>
 

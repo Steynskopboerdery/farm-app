@@ -10,6 +10,8 @@ import { useRain } from '../../lib/farmRecords'
 import { formatDateShort, formatNumber } from '../../lib/format'
 import { useI18n } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
+import { saveRow } from '../../lib/outbox'
+import { QueuedNote } from '../../components/OutboxBar'
 import { BarsChart, ReportCard } from '../reports/Chart'
 
 const mm = (n: number | null | undefined, lang: 'en' | 'af') => (n == null ? '–' : `${formatNumber(n, 1, lang)} mm`)
@@ -25,11 +27,11 @@ export function RainPage() {
   const [f, setF] = useState({ date: todayIso(), mm: '', gauge: '', notes: '' })
 
   const add = useMutation({
+    networkMode: 'always',  // kept on the phone without signal (see outbox)
     mutationFn: async () => {
       const value = numOrNull(f.mm)
       if (value == null || value < 0) throw new Error(t('rainMm'))
-      const { error } = await supabase.from('rain_readings').insert({ farm_id: farmId, date: f.date, mm: value, gauge: textOrNull(f.gauge), notes: textOrNull(f.notes) })
-      if (error) throw error
+      return saveRow('rain_readings', { farm_id: farmId, date: f.date, mm: value, gauge: textOrNull(f.gauge), notes: textOrNull(f.notes) })
     },
     onSuccess: () => { setF({ ...f, mm: '', notes: '' }); qc.invalidateQueries({ queryKey: ['rain_readings'] }) },
   })
@@ -80,6 +82,7 @@ export function RainPage() {
         <datalist id="gauges">{gauges.map((g) => <option key={g} value={g} />)}</datalist>
         <label>{t('notes')}<input value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></label>
         <button className="btn primary" disabled={add.isPending}>{add.isPending ? t('saving') : t('save')}</button>
+        <QueuedNote show={!!add.data?.queued} />
         <ErrorText error={add.error} />
       </form>
 

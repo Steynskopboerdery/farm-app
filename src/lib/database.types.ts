@@ -1778,6 +1778,42 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          lang: string
+          last_used_at: string | null
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          lang?: string
+          last_used_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          lang?: string
+          last_used_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       rain_readings: {
         Row: {
           created_at: string
@@ -2629,6 +2665,14 @@ export type Database = {
       }
       load_sample_data: { Args: { p_farm: string }; Returns: undefined }
       next_invoice_number: { Args: { p_farm: string }; Returns: string }
+      push_config: {
+        Args: never
+        Returns: {
+          notify_secret: string
+          private_key: string
+          public_key: string
+        }[]
+      }
       staff_directory: {
         Args: { fid: string }
         Returns: {

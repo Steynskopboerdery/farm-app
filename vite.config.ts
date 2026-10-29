@@ -37,6 +37,8 @@ export default defineConfig({
         // injectRegister: false the plugin no longer sets these for autoUpdate).
         skipWaiting: true,
         clientsClaim: true,
+        // Phone notifications (public/push-sw.js).
+        importScripts: ['push-sw.js'],
         // The app itself always opens offline. Farm data read recently is kept for offline viewing.
         // Satellite tiles are not stored by the app (Esri terms); the browser's normal cache still applies.
         navigateFallback: '/index.html',

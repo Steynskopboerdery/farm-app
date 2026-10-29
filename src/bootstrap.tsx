@@ -6,6 +6,7 @@ import { AuthProvider } from './auth/AuthProvider'
 import { FarmProvider } from './farm/FarmProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { I18nProvider } from './lib/i18n'
+import { onOutboxSent, startOutbox } from './lib/outbox'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,6 +17,9 @@ const queryClient = new QueryClient({
 })
 
 export function start(root: Root) {
+  // Saves kept on the phone without signal go out when signal returns; then the screens refresh.
+  onOutboxSent(() => queryClient.invalidateQueries())
+  startOutbox()
   root.render(
     <StrictMode>
       <ErrorBoundary>

@@ -12,7 +12,7 @@ import { centreOf, satelliteTileUrl } from '../../lib/geo'
 import { useI18n, type DictKey } from '../../lib/i18n'
 import { useCamps, useCurrentPlantings, useFields, useGroups, useOpenTasks } from '../../lib/queries'
 import { countdown, useLivestockCalendar } from '../livestock/LivestockCalendar'
-import { supabase } from '../../lib/supabase'
+import { updateRow } from '../../lib/outbox'
 import { WeatherCard, WeatherNow } from '../weather/WeatherCard'
 import { FarmAlerts } from './FarmAlerts'
 import { HeroPhoto } from './HeroPhoto'
@@ -50,10 +50,8 @@ export function DashboardPage() {
   const today = todayIso()
 
   const done = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('tasks').update({ status: 'done', done_at: new Date().toISOString() }).eq('id', id)
-      if (error) throw error
-    },
+    networkMode: 'always',  // kept on the phone without signal (see outbox)
+    mutationFn: (id: string) => updateRow('tasks', id, { status: 'done', done_at: new Date().toISOString() }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
   })
 

@@ -7,6 +7,7 @@ import { ErrorText, numOrNull, Section, textOrNull } from '../../components/ui'
 import { PERMISSIONS, useFarm, useFarmId } from '../../farm/FarmProvider'
 import { useI18n, type DictKey } from '../../lib/i18n'
 import { PasswordSection } from './PasswordSection'
+import { NotificationsSection } from './NotificationsSection'
 import { centreOf } from '../../lib/geo'
 import { useFarmLocation } from '../../lib/useWeather'
 import type { Boundary } from '../../lib/calc/area'
@@ -23,6 +24,7 @@ export function SettingsPage() {
       <Link to="/menu" className="back">‹ {t('menu')}</Link>
       <h1>{t('settingsTitle')}</h1>
       <Section title={t('language')}><LanguageSwitch /></Section>
+      <NotificationsSection />
       {!isOwner && !previewingWorker && <p className="notice">{t('workerNote')}</p>}
       {realRole === 'owner' && (
         <section className="card stack">

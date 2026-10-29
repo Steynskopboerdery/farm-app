@@ -497,3 +497,5 @@ details.card[open] > summary::after { content: '▴'; }
 .chat-input { position: sticky; bottom: calc(96px + env(safe-area-inset-bottom)); display: flex; gap: 8px; align-items: flex-end; background: var(--bg, #f3f5ef); padding: 8px 0; }
 .chat-input textarea { flex: 1; min-height: 46px; max-height: 140px; resize: none; }
 .chat-input .btn { flex: none; width: 52px; height: 46px; padding: 0; }
+.outbox-bar { display: flex; flex-direction: column; gap: 6px; }
+.outbox-failed { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .85rem; }

@@ -98,6 +98,13 @@ Calculations live in `src/lib/calc/`, and each file has a test next to it. Run t
 | `yield.ts` | Tons per hectare; planned income, cost and margin per field |
 | `invoice.ts` | Invoice line totals, VAT (15%, optional) and total in Rand; sequential invoice numbers |
 | `withholding.ts` | Warns when a spray's withholding period runs past the planned harvest date |
+| `rain.ts` | Rain gauge totals: per day (average of gauges), month, year to date vs earlier years, rain while a crop grows |
+| `vehicles.ts` | Fuel use (L/hour or L/100 km) from meter readings, when the next service is due |
+| `headcount.ts` | Counted vs expected animals, missing animals, groups not counted lately |
+| `leave.ts` | Working days (SA public holidays, Easter, Sunday → Monday), leave balances (BCEA defaults) |
+| `activity.ts` | Turns the change history into "what this person did" per day |
+| `exportData.ts` | SA tax year (1 Mar – end Feb), VAT summary (charged on invoices less paid on costs) |
+| `../outbox.ts` | Tells "no signal" apart from a real refusal, so offline saves are retried and refusals are shown |
 
 ## Folder layout
 
@@ -205,3 +212,37 @@ supabase/
   Enforced by the database (`private.can`), not just the screens. Workers with animal permission can change a group's count and camp only.
   Workers never get access to sales, invoices, costs, customers or settings.
 - Weather alerts (frost, heavy rain, strong wind, heat) were added with the weather update.
+
+### Phase 7: farm records (done)
+- **Rain gauge** (Menu, and + button): readings per day (several gauges averaged), last 7 days, month, year, % of earlier years, rain per month table/graph.
+  Field pages show rain while the crop grew; Reports has "Rain and yield".
+- **Profit per field**: invoice lines can be linked to a field and a season. The field page (owners) and Reports use real sales when linked, otherwise the harvest × planning price.
+- **Spray conditions**: time, wind, gusts, direction, temperature and humidity on every spray record, filled in from the forecast for that hour
+  (or typed in), with warnings for drift, heat, cold and dry air. Shown on the field page and in the export.
+- **Map pins** (anyone): fence, water, erosion, weeds, animal, other, with a photo (private `pin-photos` bucket). Make a task from a pin, mark it dealt with, directions. Pins list in the Menu.
+- **Export** (owners): Excel workbook (summary with VAT, costs, invoices, payments, field records, plantings, harvests, animal events, rain, fuel) or a one-page PDF summary,
+  for the tax year, last tax year, a calendar year or any dates. Uses `write-excel-file`; files are shared or downloaded on the phone.
+- **Head counts**: count a group in the veld; the app compares with the records and warns on the home screen when animals are missing.
+- **Tractors & fuel** (anyone logs, owners add vehicles): fuel, services and repairs with meter readings, L/hour or L/100 km, service due warnings.
+  Fuel from the farm tank comes off the store stock automatically (database trigger, so workers don't need store permission).
+
+### Phase 8: team (done)
+- **Team** (Menu): Schedule (week by day, who works where and when, copy last week, shows who is on leave), Staff and Leave tabs for owners; "My work" for workers.
+- **Staff** records for everyone, also people without a phone: job, phone, ID number, address, emergency contact, start date, work days, leave rules, optional link to their app login.
+  Personal details are visible to owners only; a worker sees only their own record (POPIA).
+- **Leave**: workers ask (with a doctor's note or form attached), owners approve or decline with a note, or record leave themselves.
+  Working days leave out weekends and SA public holidays. Balances follow the BCEA defaults (15 working days annual, 30 sick days per 3 years, 3 family days), editable per person.
+- **Documents**: CVs, doctor's notes, leave forms, contracts, ID copies in the private `staff-docs` bucket (owner and that person only).
+- **Work diary** ("what I did today") and **Done in the app**: everything a person recorded or ticked off, day by day, from the change history.
+- **Messages**: private chats between two people (only they can read them) and **Everyone** broadcasts from owners. Live updates; unread count at the top.
+
+### Phase 9: phone notifications and offline saving (done)
+- **Notifications** (Settings → Phone notifications, per phone): new messages and broadcasts, leave requests and answers, tasks given to someone,
+  and a 07:30 morning summary (tasks due, withholding ending, lambing / calving / shearing in a week or today, leave waiting;
+  on Mondays low stock, services due, missing animals, open pins for owners). In English or Afrikaans as chosen in the app.
+  Web Push from the Supabase function `notify`, called by database triggers and `pg_cron` through `pg_net`.
+  The VAPID private key and the shared secret are in Supabase Vault (`farm_push_private`, `farm_notify_secret`), never in the code.
+  iPhones need the app added to the home screen first.
+- **Offline saving that survives closing the app**: rain, fuel, head counts, diary, ticking off tasks, map pins (without photo) and leave requests (without attachment)
+  are kept on the phone without signal and sent by themselves later (new rows get their id on the phone, so nothing is saved twice).
+  Anything the database refuses is shown at the top with "Try again" / "Throw away". Other forms still wait while the app stays open.
