@@ -25,6 +25,9 @@ import { ItemPage } from './features/inventory/ItemPage'
 import { VehiclePage, VehiclesPage } from './features/vehicles/VehiclesPage'
 import { PinsPage } from './features/map/PinsPage'
 import { ExportPage } from './features/export/ExportPage'
+import { TeamPage } from './features/team/TeamPage'
+import { StaffPage } from './features/team/StaffPage'
+import { ChatList, ChatThread } from './features/team/ChatPage'
 
 // Charts are large, so the reports load only when opened.
 const RainPage = lazy(() => import('./features/rain/RainPage').then((m) => ({ default: m.RainPage })))
@@ -82,6 +85,10 @@ export default function App() {
           <Route path="vehicles/:id" element={<VehiclePage />} />
           <Route path="pins" element={<PinsPage />} />
           <Route path="export" element={<ExportPage />} />
+          <Route path="team" element={<TeamPage />} />
+          <Route path="team/staff/:id" element={<StaffPage />} />
+          <Route path="chat" element={<ChatList />} />
+          <Route path="chat/:peer" element={<ChatThread />} />
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="inventory/item/:id" element={<ItemPage />} />
           <Route path="sales" element={<SalesPage />} />

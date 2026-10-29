@@ -7,6 +7,8 @@ import { formatNumber } from '../../lib/format'
 import { useI18n } from '../../lib/i18n'
 import { useGroups } from '../../lib/queries'
 import { vehicleSummary } from '../vehicles/VehiclesPage'
+import { useLeave, useUnread } from '../../lib/team'
+import { useFarm } from '../../farm/FarmProvider'
 
 /** Home screen: rain so far, animals missing at the last count, services due, open map pins. */
 export function FarmAlerts() {
@@ -22,9 +24,27 @@ export function FarmAlerts() {
   const due = (vehicles.data?.vehicles ?? []).map((v) => ({ v, s: vehicleSummary(v, vehicles.data?.logs ?? []).service })).filter((x) => x.s?.due || x.s?.soon)
   const openPins = pins.data?.length ?? 0
   const readings = rain.data ?? []
+  const unread = useUnread()
+  const { isOwner } = useFarm()
+  const leave = useLeave()
+  const pendingLeave = isOwner ? (leave.data ?? []).filter((l) => l.status === 'pending').length : 0
 
   return (
     <>
+      {unread.total > 0 && (
+        <Link to="/chat" className="card alert-link unread-card">
+          <span className="kind-emoji" aria-hidden="true">💬</span>
+          <div className="grow"><strong>{t('chatUnread', { n: unread.total })}</strong></div>
+          <span className="chev">›</span>
+        </Link>
+      )}
+      {pendingLeave > 0 && (
+        <Link to="/team?tab=leave" className="card alert-link">
+          <span className="kind-emoji" aria-hidden="true">🏖️</span>
+          <div className="grow"><strong>{t('leavePendingN', { n: pendingLeave })}</strong></div>
+          <span className="chev">›</span>
+        </Link>
+      )}
       {readings.length > 0 && (
         <Link to="/rain" className="card alert-link">
           <span className="kind-emoji" aria-hidden="true">🌧️</span>

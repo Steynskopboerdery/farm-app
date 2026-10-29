@@ -88,6 +88,6 @@ export function leaveBalances(staff: StaffLeaveRules, leave: LeaveLite[], today:
 }
 
 /** Is the person on approved leave on this day? */
-export function onLeave(leave: { status: string; start_date: string; end_date: string }[], day: string) {
+export function onLeave<T extends { status: string; start_date: string; end_date: string }>(leave: T[], day: string): T | null {
   return leave.find((l) => l.status === 'approved' && l.start_date <= day && l.end_date >= day) ?? null
 }

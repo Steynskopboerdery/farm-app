@@ -2,6 +2,7 @@ import { useMutationState } from '@tanstack/react-query'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useFarm } from '../farm/FarmProvider'
+import { useMessagesLive, useUnread } from '../lib/team'
 import { useI18n } from '../lib/i18n'
 import { QuickAddSheet } from './QuickAddSheet'
 import { useOnline } from './useOnline'
@@ -30,6 +31,9 @@ export function Layout() {
   // Everyone may record rain, fuel and map pins, so the + button is always there.
   const canAdd = true
   const online = useOnline()
+  // New messages arrive live anywhere in the app.
+  useMessagesLive()
+  const unread = useUnread()
   const waiting = useMutationState({ filters: { status: 'pending' }, select: (m) => m.state.isPaused }).filter(Boolean).length
   const { pathname } = useLocation()
   const [adding, setAdding] = useState(false)
@@ -45,6 +49,7 @@ export function Layout() {
             <span className="topbar-title">{farm?.name ?? t('appName')}</span>
             <span className="switch-caret" aria-hidden="true">▾</span>
           </NavLink>
+          <NavLink to="/chat" className="gear chat-link" aria-label={t('chatTitle')}>💬{unread.total > 0 && <span className="unread">{unread.total}</span>}</NavLink>
           <NavLink to="/menu" className="gear" aria-label={t('menu')}><Icon d={icons.menu} size={24} /></NavLink>
         </header>
       )}
