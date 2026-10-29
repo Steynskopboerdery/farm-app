@@ -331,6 +331,35 @@ export type Database = {
           },
         ]
       }
+      chat_reads: {
+        Row: {
+          farm_id: string
+          last_read_at: string
+          peer_id: string
+          user_id: string
+        }
+        Insert: {
+          farm_id: string
+          last_read_at?: string
+          peer_id: string
+          user_id?: string
+        }
+        Update: {
+          farm_id?: string
+          last_read_at?: string
+          peer_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_reads_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       costs: {
         Row: {
           amount: number
@@ -348,6 +377,7 @@ export type Database = {
           season_id: string | null
           supplier: string | null
           updated_at: string
+          vat_amount: number | null
         }
         Insert: {
           amount: number
@@ -365,6 +395,7 @@ export type Database = {
           season_id?: string | null
           supplier?: string | null
           updated_at?: string
+          vat_amount?: number | null
         }
         Update: {
           amount?: number
@@ -382,6 +413,7 @@ export type Database = {
           season_id?: string | null
           supplier?: string | null
           updated_at?: string
+          vat_amount?: number | null
         }
         Relationships: [
           {
@@ -698,6 +730,8 @@ export type Database = {
           deleted_at: string | null
           farm_id: string
           field_id: string
+          gust_kmh: number | null
+          humidity: number | null
           id: string
           inventory_item_id: string | null
           notes: string | null
@@ -705,10 +739,15 @@ export type Database = {
           rate: number | null
           rate_unit: string | null
           season_id: string | null
+          spray_time: string | null
+          temp_c: number | null
           total_amount: number | null
           type: string
           unit: string | null
           updated_at: string
+          weather_source: string | null
+          wind_dir: number | null
+          wind_kmh: number | null
           withholding_period_days: number | null
         }
         Insert: {
@@ -719,6 +758,8 @@ export type Database = {
           deleted_at?: string | null
           farm_id: string
           field_id: string
+          gust_kmh?: number | null
+          humidity?: number | null
           id?: string
           inventory_item_id?: string | null
           notes?: string | null
@@ -726,10 +767,15 @@ export type Database = {
           rate?: number | null
           rate_unit?: string | null
           season_id?: string | null
+          spray_time?: string | null
+          temp_c?: number | null
           total_amount?: number | null
           type: string
           unit?: string | null
           updated_at?: string
+          weather_source?: string | null
+          wind_dir?: number | null
+          wind_kmh?: number | null
           withholding_period_days?: number | null
         }
         Update: {
@@ -740,6 +786,8 @@ export type Database = {
           deleted_at?: string | null
           farm_id?: string
           field_id?: string
+          gust_kmh?: number | null
+          humidity?: number | null
           id?: string
           inventory_item_id?: string | null
           notes?: string | null
@@ -747,10 +795,15 @@ export type Database = {
           rate?: number | null
           rate_unit?: string | null
           season_id?: string | null
+          spray_time?: string | null
+          temp_c?: number | null
           total_amount?: number | null
           type?: string
           unit?: string | null
           updated_at?: string
+          weather_source?: string | null
+          wind_dir?: number | null
+          wind_kmh?: number | null
           withholding_period_days?: number | null
         }
         Relationships: [
@@ -906,6 +959,73 @@ export type Database = {
             columns: ["farm_id", "season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
+            referencedColumns: ["farm_id", "id"]
+          },
+        ]
+      }
+      head_counts: {
+        Row: {
+          camp_id: string | null
+          counted: number
+          created_at: string
+          created_by: string | null
+          date: string
+          deleted_at: string | null
+          expected: number
+          farm_id: string
+          group_id: string
+          id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          camp_id?: string | null
+          counted: number
+          created_at?: string
+          created_by?: string | null
+          date: string
+          deleted_at?: string | null
+          expected: number
+          farm_id: string
+          group_id: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          camp_id?: string | null
+          counted?: number
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          deleted_at?: string | null
+          expected?: number
+          farm_id?: string
+          group_id?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "head_counts_farm_id_camp_id_fkey"
+            columns: ["farm_id", "camp_id"]
+            isOneToOne: false
+            referencedRelation: "camps"
+            referencedColumns: ["farm_id", "id"]
+          },
+          {
+            foreignKeyName: "head_counts_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "head_counts_farm_id_group_id_fkey"
+            columns: ["farm_id", "group_id"]
+            isOneToOne: false
+            referencedRelation: "livestock_groups"
             referencedColumns: ["farm_id", "id"]
           },
         ]
@@ -1118,6 +1238,78 @@ export type Database = {
           },
         ]
       }
+      leave_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          days: number
+          decided_at: string | null
+          decided_by: string | null
+          deleted_at: string | null
+          end_date: string
+          farm_id: string
+          id: string
+          owner_note: string | null
+          reason: string | null
+          staff_id: string
+          start_date: string
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          days: number
+          decided_at?: string | null
+          decided_by?: string | null
+          deleted_at?: string | null
+          end_date: string
+          farm_id: string
+          id?: string
+          owner_note?: string | null
+          reason?: string | null
+          staff_id: string
+          start_date: string
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          days?: number
+          decided_at?: string | null
+          decided_by?: string | null
+          deleted_at?: string | null
+          end_date?: string
+          farm_id?: string
+          id?: string
+          owner_note?: string | null
+          reason?: string | null
+          staff_id?: string
+          start_date?: string
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_farm_id_staff_id_fkey"
+            columns: ["farm_id", "staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["farm_id", "id"]
+          },
+        ]
+      }
       livestock_groups: {
         Row: {
           breed: string | null
@@ -1177,6 +1369,100 @@ export type Database = {
           },
           {
             foreignKeyName: "livestock_groups_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      map_pins: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          farm_id: string
+          id: string
+          kind: string
+          lat: number
+          lng: number
+          notes: string | null
+          photo_path: string | null
+          resolved_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          farm_id: string
+          id?: string
+          kind?: string
+          lat: number
+          lng: number
+          notes?: string | null
+          photo_path?: string | null
+          resolved_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          farm_id?: string
+          id?: string
+          kind?: string
+          lat?: number
+          lng?: number
+          notes?: string | null
+          photo_path?: string | null
+          resolved_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "map_pins_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          body: string
+          created_at: string
+          deleted_at: string | null
+          farm_id: string
+          id: string
+          recipient_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          farm_id: string
+          id?: string
+          recipient_id?: string | null
+          sender_id?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          farm_id?: string
+          id?: string
+          recipient_id?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_farm_id_fkey"
             columns: ["farm_id"]
             isOneToOne: false
             referencedRelation: "farms"
@@ -1492,6 +1778,53 @@ export type Database = {
           },
         ]
       }
+      rain_readings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          deleted_at: string | null
+          farm_id: string
+          gauge: string | null
+          id: string
+          mm: number
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date: string
+          deleted_at?: string | null
+          farm_id: string
+          gauge?: string | null
+          id?: string
+          mm: number
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          deleted_at?: string | null
+          farm_id?: string
+          gauge?: string | null
+          id?: string
+          mm?: number
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rain_readings_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_items: {
         Row: {
           created_at: string
@@ -1740,6 +2073,83 @@ export type Database = {
           },
         ]
       }
+      shifts: {
+        Row: {
+          camp_id: string | null
+          created_at: string
+          created_by: string | null
+          date: string
+          deleted_at: string | null
+          end_time: string | null
+          farm_id: string
+          field_id: string | null
+          id: string
+          staff_id: string
+          start_time: string | null
+          updated_at: string
+          work: string | null
+        }
+        Insert: {
+          camp_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date: string
+          deleted_at?: string | null
+          end_time?: string | null
+          farm_id: string
+          field_id?: string | null
+          id?: string
+          staff_id: string
+          start_time?: string | null
+          updated_at?: string
+          work?: string | null
+        }
+        Update: {
+          camp_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          deleted_at?: string | null
+          end_time?: string | null
+          farm_id?: string
+          field_id?: string | null
+          id?: string
+          staff_id?: string
+          start_time?: string | null
+          updated_at?: string
+          work?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shifts_farm_id_camp_id_fkey"
+            columns: ["farm_id", "camp_id"]
+            isOneToOne: false
+            referencedRelation: "camps"
+            referencedColumns: ["farm_id", "id"]
+          },
+          {
+            foreignKeyName: "shifts_farm_id_field_id_fkey"
+            columns: ["farm_id", "field_id"]
+            isOneToOne: false
+            referencedRelation: "fields"
+            referencedColumns: ["farm_id", "id"]
+          },
+          {
+            foreignKeyName: "shifts_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shifts_farm_id_staff_id_fkey"
+            columns: ["farm_id", "staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["farm_id", "id"]
+          },
+        ]
+      }
       species_reference: {
         Row: {
           created_at: string
@@ -1781,6 +2191,150 @@ export type Database = {
           },
         ]
       }
+      staff: {
+        Row: {
+          active: boolean
+          address: string | null
+          annual_leave_days: number
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          emergency_contact: string | null
+          employment_type: string
+          family_leave_days: number
+          farm_id: string
+          full_name: string
+          id: string
+          id_number: string | null
+          job_title: string | null
+          notes: string | null
+          phone: string | null
+          sick_leave_days: number
+          start_date: string | null
+          updated_at: string
+          user_id: string | null
+          work_days: number[]
+        }
+        Insert: {
+          active?: boolean
+          address?: string | null
+          annual_leave_days?: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          emergency_contact?: string | null
+          employment_type?: string
+          family_leave_days?: number
+          farm_id: string
+          full_name: string
+          id?: string
+          id_number?: string | null
+          job_title?: string | null
+          notes?: string | null
+          phone?: string | null
+          sick_leave_days?: number
+          start_date?: string | null
+          updated_at?: string
+          user_id?: string | null
+          work_days?: number[]
+        }
+        Update: {
+          active?: boolean
+          address?: string | null
+          annual_leave_days?: number
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          emergency_contact?: string | null
+          employment_type?: string
+          family_leave_days?: number
+          farm_id?: string
+          full_name?: string
+          id?: string
+          id_number?: string | null
+          job_title?: string | null
+          notes?: string | null
+          phone?: string | null
+          sick_leave_days?: number
+          start_date?: string | null
+          updated_at?: string
+          user_id?: string | null
+          work_days?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_documents: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          farm_id: string
+          id: string
+          kind: string
+          leave_id: string | null
+          path: string
+          staff_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          farm_id: string
+          id?: string
+          kind?: string
+          leave_id?: string | null
+          path: string
+          staff_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          farm_id?: string
+          id?: string
+          kind?: string
+          leave_id?: string | null
+          path?: string
+          staff_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_documents_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_documents_farm_id_leave_id_fkey"
+            columns: ["farm_id", "leave_id"]
+            isOneToOne: false
+            referencedRelation: "leave_requests"
+            referencedColumns: ["farm_id", "id"]
+          },
+          {
+            foreignKeyName: "staff_documents_farm_id_staff_id_fkey"
+            columns: ["farm_id", "staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["farm_id", "id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assigned_to: string | null
@@ -1796,6 +2350,7 @@ export type Database = {
           id: string
           is_sample: boolean
           notes: string | null
+          pin_id: string | null
           status: string
           title: string
           type: string
@@ -1815,6 +2370,7 @@ export type Database = {
           id?: string
           is_sample?: boolean
           notes?: string | null
+          pin_id?: string | null
           status?: string
           title: string
           type?: string
@@ -1834,6 +2390,7 @@ export type Database = {
           id?: string
           is_sample?: boolean
           notes?: string | null
+          pin_id?: string | null
           status?: string
           title?: string
           type?: string
@@ -1868,6 +2425,196 @@ export type Database = {
             referencedRelation: "livestock_groups"
             referencedColumns: ["farm_id", "id"]
           },
+          {
+            foreignKeyName: "tasks_farm_id_pin_id_fkey"
+            columns: ["farm_id", "pin_id"]
+            isOneToOne: false
+            referencedRelation: "map_pins"
+            referencedColumns: ["farm_id", "id"]
+          },
+        ]
+      }
+      vehicle_logs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          deleted_at: string | null
+          farm_id: string
+          from_store: boolean
+          id: string
+          inventory_movement_id: string | null
+          kind: string
+          litres: number | null
+          notes: string | null
+          reading: number | null
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date: string
+          deleted_at?: string | null
+          farm_id: string
+          from_store?: boolean
+          id?: string
+          inventory_movement_id?: string | null
+          kind?: string
+          litres?: number | null
+          notes?: string | null
+          reading?: number | null
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          deleted_at?: string | null
+          farm_id?: string
+          from_store?: boolean
+          id?: string
+          inventory_movement_id?: string | null
+          kind?: string
+          litres?: number | null
+          notes?: string | null
+          reading?: number | null
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_logs_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_logs_farm_id_vehicle_id_fkey"
+            columns: ["farm_id", "vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["farm_id", "id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          farm_id: string
+          fuel_item_id: string | null
+          id: string
+          kind: string
+          meter: string
+          name: string
+          notes: string | null
+          registration: string | null
+          service_interval: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          farm_id: string
+          fuel_item_id?: string | null
+          id?: string
+          kind?: string
+          meter?: string
+          name: string
+          notes?: string | null
+          registration?: string | null
+          service_interval?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          farm_id?: string
+          fuel_item_id?: string | null
+          id?: string
+          kind?: string
+          meter?: string
+          name?: string
+          notes?: string | null
+          registration?: string | null
+          service_interval?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_farm_id_fuel_item_id_fkey"
+            columns: ["farm_id", "fuel_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["farm_id", "id"]
+          },
+        ]
+      }
+      work_diary: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          deleted_at: string | null
+          farm_id: string
+          hours: number | null
+          id: string
+          notes: string
+          staff_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date: string
+          deleted_at?: string | null
+          farm_id: string
+          hours?: number | null
+          id?: string
+          notes: string
+          staff_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          deleted_at?: string | null
+          farm_id?: string
+          hours?: number | null
+          id?: string
+          notes?: string
+          staff_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_diary_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_diary_farm_id_staff_id_fkey"
+            columns: ["farm_id", "staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["farm_id", "id"]
+          },
         ]
       }
     }
@@ -1882,6 +2629,16 @@ export type Database = {
       }
       load_sample_data: { Args: { p_farm: string }; Returns: undefined }
       next_invoice_number: { Args: { p_farm: string }; Returns: string }
+      staff_directory: {
+        Args: { fid: string }
+        Returns: {
+          active: boolean
+          full_name: string
+          id: string
+          job_title: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compass, daily, hourly, localParts, meanDirection, skyFromSymbol, sprayWindows, weatherAlerts, type MetEntry, type MetForecast } from './weather'
+import { compass, conditionsAt, sprayWarnings, daily, hourly, localParts, meanDirection, skyFromSymbol, sprayWindows, weatherAlerts, type MetEntry, type MetForecast } from './weather'
 
 // Builds a MET-style entry. Wind in m/s like the real feed.
 function entry(time: string, o: { t?: number; w?: number; g?: number; dir?: number; rain?: number; chance?: number; sym?: string; six?: { rain: number; max: number; min: number; chance?: number } } = {}): MetEntry {
@@ -97,5 +97,20 @@ describe('skyFromSymbol', () => {
     expect(skyFromSymbol('partlycloudy_night')).toBe('moon')
     expect(skyFromSymbol('clearsky_day')).toBe('sun')
     expect(skyFromSymbol('cloudy')).toBe('cloud')
+  })
+})
+
+describe('spraying conditions on the record', () => {
+  const hour = (time: string, windKmh: number) => ({ time, date: time.slice(0, 10), hour: 0, temp: 20, windKmh, gustKmh: null, windDir: 180, humidity: 60, rainMm: 0, rainChance: 0, symbol: null })
+  const hours = [hour('2026-10-29T06:00:00Z', 5), hour('2026-10-29T07:00:00Z', 8), hour('2026-10-29T08:00:00Z', 12)]
+  it('takes the nearest forecast hour', () => {
+    expect(conditionsAt(hours, new Date('2026-10-29T07:20:00Z'))?.windKmh).toBe(8)
+  })
+  it('nothing when the time is outside the forecast', () => {
+    expect(conditionsAt(hours, new Date('2026-10-28T07:00:00Z'))).toBeNull()
+  })
+  it('flags wind, gusts, heat and dry air', () => {
+    expect(sprayWarnings({ windKmh: 18, gustKmh: 30, temp: 32, humidity: 30 })).toEqual(['windy', 'gusty', 'hot', 'dry'])
+    expect(sprayWarnings({ windKmh: 8, gustKmh: 14, temp: 18, humidity: 65 })).toEqual([])
   })
 })

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ErrorText, Loading, numOrNull, textOrNull } from '../../components/ui'
 import { useFarm, useFarmId } from '../../farm/FarmProvider'
@@ -16,6 +16,8 @@ import { useFields, useSeasons } from '../../lib/queries'
 import { useInventory } from '../../lib/inventory'
 import { stockOnHand } from '../../lib/calc/reports'
 import { supabase } from '../../lib/supabase'
+import { useWeather } from '../../lib/useWeather'
+import { compass, conditionsAt, sprayWarnings } from '../../lib/weather'
 
 export type RecordType = 'planting' | 'fertiliser' | 'spray' | 'other' | 'harvest'
 
@@ -76,6 +78,8 @@ function initialForm(type: RecordType, existing: Record<string, unknown> | undef
     date: v('date') || todayIso(), product: v('product'), rate: v('rate'),
     rateUnit: v('rate_unit') || (type === 'spray' ? 'L/ha' : 'kg/ha'), total: v('total_amount'),
     cost: v('cost'), price: '', whp: v('withholding_period_days'), notes: v('notes'),
+    sprayTime: v('spray_time').slice(0, 5) || (existing ? '' : new Date().toTimeString().slice(0, 5)),
+    wind: v('wind_kmh'), gust: v('gust_kmh'), dir: v('wind_dir'), temp: v('temp_c'), hum: v('humidity'), wsource: v('weather_source'),
   }
 }
 
@@ -116,6 +120,22 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
   })
 
   const unit = UNIT_FOR_RATE[f.rateUnit] ?? 'kg'
+
+  // Spraying conditions: taken from the forecast for the spraying hour (works for today), or typed in.
+  const weather = useWeather()
+  const sprayMoment = type === 'spray' && f.date && f.sprayTime ? new Date(`${f.date}T${f.sprayTime}:00+02:00`) : null
+  const forecastHour = sprayMoment && weather.data ? conditionsAt(weather.data.hours, sprayMoment) : null
+  const fillWeather = () => {
+    if (!forecastHour) return
+    setF((old) => ({
+      ...old, wind: String(forecastHour.windKmh), gust: forecastHour.gustKmh != null ? String(forecastHour.gustKmh) : '',
+      dir: String(forecastHour.windDir), temp: String(forecastHour.temp), hum: forecastHour.humidity != null ? String(forecastHour.humidity) : '', wsource: 'forecast',
+    }))
+  }
+  const autoFill = !existing && type === 'spray' && !!forecastHour && !f.wind && !f.wsource
+  useEffect(() => { if (autoFill) fillWeather() })  // eslint-disable-line react-hooks/exhaustive-deps
+  const setManual = (k: string, val: string) => setF((old) => ({ ...old, [k]: val, wsource: 'manual' }))
+  const warnings = type === 'spray' ? sprayWarnings({ windKmh: numOrNull(f.wind), gustKmh: numOrNull(f.gust), temp: numOrNull(f.temp), humidity: numOrNull(f.hum) }) : []
   const backTo = `/land/field/${field.id}?season=${season.startsWith('new:') ? '' : season}`
 
   // Withholding: sprays on this field in this season against the harvest date being entered.
@@ -158,6 +178,10 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
           rate: type === 'other' ? null : numOrNull(f.rate), rate_unit: type === 'other' ? null : f.rateUnit,
           total_amount: type === 'other' ? null : numOrNull(f.total), unit: type === 'other' ? null : unit,
           cost: numOrNull(f.cost), withholding_period_days: type === 'spray' ? numOrNull(f.whp) : null,
+          ...(type === 'spray' ? {
+            spray_time: f.sprayTime || null, wind_kmh: numOrNull(f.wind), gust_kmh: numOrNull(f.gust), wind_dir: numOrNull(f.dir),
+            temp_c: numOrNull(f.temp), humidity: numOrNull(f.hum), weather_source: f.wsource || null,
+          } : {}),
         }
         const withItem = { ...row, inventory_item_id: type === 'other' ? null : storeItem || null }
         let opId = existing ? String(existing.id) : ''
@@ -312,6 +336,29 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
                   <p className="pill-info">{t('safeFrom')}: <strong>{formatDate(safeHarvestDate({ product: f.product, date: f.date, withholdingPeriodDays: numOrNull(f.whp) }), lang)}</strong></p>
                 ) : null}
                 <p className="advice">{t('labelAdvice')}</p>
+                <fieldset className="card-inset stack" disabled={!canEdit}>
+                  <legend>🌬️ {t('sprayConditions')}</legend>
+                  <label>{t('sprayTime')}<input type="time" value={f.sprayTime} onChange={(e) => set('sprayTime', e.target.value)} /></label>
+                  <div className="grid2">
+                    <label>{t('windKmh')}<input inputMode="decimal" value={f.wind} onChange={(e) => setManual('wind', e.target.value)} /></label>
+                    <label>{t('gustKmh')}<input inputMode="decimal" value={f.gust} onChange={(e) => setManual('gust', e.target.value)} /></label>
+                    <label>{t('windFrom')}
+                      <select value={f.dir} onChange={(e) => setManual('dir', e.target.value)}>
+                        <option value="">–</option>
+                        {[0, 45, 90, 135, 180, 225, 270, 315].map((d) => <option key={d} value={d}>{compass(d, lang)}</option>)}
+                        {f.dir && ![0, 45, 90, 135, 180, 225, 270, 315].includes(Number(f.dir)) && <option value={f.dir}>{compass(Number(f.dir), lang)} ({f.dir}°)</option>}
+                      </select>
+                    </label>
+                    <label>{t('tempC')}<input inputMode="decimal" value={f.temp} onChange={(e) => setManual('temp', e.target.value)} /></label>
+                  </div>
+                  <label>{t('humidityPct')}<input inputMode="numeric" value={f.hum} onChange={(e) => setManual('hum', e.target.value)} /></label>
+                  {forecastHour && f.wsource !== 'forecast' && <button type="button" className="btn small" onClick={fillWeather}>⛅ {t('fillFromWeather')}</button>}
+                  {f.wsource === 'forecast' && <p className="tiny muted">{t('weatherFromForecast')}</p>}
+                  {!forecastHour && !f.wind && <p className="tiny muted">{t('weatherTypeIn')}</p>}
+                  {warnings.length > 0 && (
+                    <div className="warning"><strong>⚠ {t('sprayNotIdeal')}</strong>{warnings.map((w2) => <p key={w2}>{t(`sw_${w2}` as DictKey)}</p>)}</div>
+                  )}
+                </fieldset>
               </>
             )}
           </>

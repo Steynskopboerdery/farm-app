@@ -7,15 +7,30 @@ import { todayIso } from '../../lib/calc/dates'
 import { invoiceTotals } from '../../lib/calc/invoice'
 import { formatNumber, formatZar } from '../../lib/format'
 import { useI18n } from '../../lib/i18n'
-import { useFarmSettings } from '../../lib/queries'
+import { useFarmSettings, useFields, useSeasons } from '../../lib/queries'
+import { defaultSeasonId } from '../../lib/fieldRecords'
 import { dueDateFor, useCustomers, useInvoiceItems, useInvoices, type InvoiceWithPayments, type SaleItem } from '../../lib/sales'
 import { supabase } from '../../lib/supabase'
 import { CustomerFields, customerRow } from './CustomerFormPage'
+import { useQuery } from '@tanstack/react-query'
 
-interface Line { description: string; quantity: string; unit: string; unitPrice: string; vat: boolean }
+/** The season an existing sale was booked under. */
+function useSaleSeason(saleId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['sales', saleId, 'season'],
+    enabled: !!saleId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('sales').select('season_id').eq('id', saleId!).maybeSingle()
+      if (error) throw error
+      return data?.season_id ?? null
+    },
+  })
+}
+
+interface Line { description: string; quantity: string; unit: string; unitPrice: string; vat: boolean; field: string }
 const UNITS = ['t', 'kg', 'head', 'bale', 'L', 'each']
 const SUGGESTIONS = ['Wheat', 'Canola', 'Malting barley', 'Oats', 'Wool', 'Lambs', 'Weaner calves', 'Cull ewes', 'Cull cows', 'Hay bales']
-const emptyLine = (): Line => ({ description: '', quantity: '', unit: 't', unitPrice: '', vat: true })
+const emptyLine = (): Line => ({ description: '', quantity: '', unit: 't', unitPrice: '', vat: true, field: '' })
 
 /** Routes: /sales/new and /sales/invoice/:id/edit (drafts only). */
 export function InvoiceFormPage() {
@@ -47,8 +62,13 @@ function InvoiceForm({ existing, existingItems }: { existing?: InvoiceWithPaymen
   const [due, setDue] = useState(existing?.due_date ?? '')
   const [dueTouched, setDueTouched] = useState(!!existing)
   const [notes, setNotes] = useState(existing?.notes ?? '')
+  const fields = useFields()
+  const seasons = useSeasons()
+  const [seasonPick, setSeasonPick] = useState<string | null>(null)
+  const sales = useSaleSeason(existing?.sale_id)
+  const season = seasonPick ?? sales.data ?? defaultSeasonId(seasons.data) ?? ''
   const [lines, setLines] = useState<Line[]>(() => existingItems.length
-    ? existingItems.map((i) => ({ description: i.description, quantity: String(i.quantity), unit: i.unit ?? '', unitPrice: String(i.unit_price), vat: i.vat_applicable }))
+    ? existingItems.map((i) => ({ description: i.description, quantity: String(i.quantity), unit: i.unit ?? '', unitPrice: String(i.unit_price), vat: i.vat_applicable, field: i.field_id ?? '' }))
     : [emptyLine()])
 
   const dueDate = dueTouched ? due : dueDateFor(issue, terms)
@@ -67,13 +87,13 @@ function InvoiceForm({ existing, existingItems }: { existing?: InvoiceWithPaymen
       }
       const itemRows = (saleId: string) => filled.map((l) => ({
         farm_id: farmId, sale_id: saleId, description: l.description.trim(), quantity: numOrNull(l.quantity)!,
-        unit: textOrNull(l.unit), unit_price: numOrNull(l.unitPrice)!, vat_applicable: l.vat,
+        unit: textOrNull(l.unit), unit_price: numOrNull(l.unitPrice)!, vat_applicable: l.vat, field_id: l.field || null,
       }))
       const money = { subtotal: totals.subtotal, vat_amount: totals.vat, total: totals.total }
 
       if (existing) {
         const saleId = existing.sale_id!
-        let { error } = await supabase.from('sales').update({ customer_id: custId, date: issue, description: filled[0].description }).eq('id', saleId)
+        let { error } = await supabase.from('sales').update({ customer_id: custId, date: issue, description: filled[0].description, season_id: season || null }).eq('id', saleId)
         if (error) throw error
         ;({ error } = await supabase.from('sale_items').update({ deleted_at: new Date().toISOString() }).eq('sale_id', saleId).is('deleted_at', null))
         if (error) throw error
@@ -84,7 +104,7 @@ function InvoiceForm({ existing, existingItems }: { existing?: InvoiceWithPaymen
         return existing.id
       }
 
-      const { data: sale, error: saleErr } = await supabase.from('sales').insert({ farm_id: farmId, customer_id: custId, date: issue, description: filled[0].description }).select('id').single()
+      const { data: sale, error: saleErr } = await supabase.from('sales').insert({ farm_id: farmId, customer_id: custId, date: issue, description: filled[0].description, season_id: season || null }).select('id').single()
       if (saleErr) throw saleErr
       const { error: itemsErr } = await supabase.from('sale_items').insert(itemRows(sale.id))
       if (itemsErr) throw itemsErr
@@ -124,6 +144,13 @@ function InvoiceForm({ existing, existingItems }: { existing?: InvoiceWithPaymen
             <label>{t('issueDate')}<input type="date" required value={issue} onChange={(e) => setIssue(e.target.value)} /></label>
             <label>{t('dueDateLabel')}<input type="date" value={dueDate} onChange={(e) => { setDueTouched(true); setDue(e.target.value) }} /></label>
           </div>
+          <label>{t('season')}
+            <select value={season} onChange={(e) => setSeasonPick(e.target.value)}>
+              <option value="">–</option>
+              {(seasons.data ?? []).map((x) => <option key={x.id} value={x.id}>{x.label || x.year}</option>)}
+            </select>
+            <span className="hint">{t('saleSeasonHint')}</span>
+          </label>
         </section>
 
         <section className="card stack">
@@ -145,6 +172,14 @@ function InvoiceForm({ existing, existingItems }: { existing?: InvoiceWithPaymen
                 </label>
                 <label>{t('unitPrice')}<input inputMode="decimal" value={l.unitPrice} onChange={(e) => setLine(i, { unitPrice: e.target.value })} /></label>
               </div>
+              {(fields.data ?? []).length > 0 && (
+                <label>{t('fromField')}
+                  <select value={l.field} onChange={(e) => setLine(i, { field: e.target.value })}>
+                    <option value="">–</option>
+                    {(fields.data ?? []).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  </select>
+                </label>
+              )}
               {vatRegistered && <label className="check"><input type="checkbox" checked={l.vat} onChange={(e) => setLine(i, { vat: e.target.checked })} /> {t('vatOnLine')}</label>}
               {numOrNull(l.quantity) != null && numOrNull(l.unitPrice) != null && (
                 <p className="right small"><strong>{formatZar(Math.round(numOrNull(l.quantity)! * numOrNull(l.unitPrice)! * 100) / 100, lang)}</strong></p>

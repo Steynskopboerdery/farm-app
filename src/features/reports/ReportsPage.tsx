@@ -11,6 +11,8 @@ import { useAllBirths, useAllCropRecords, useCosts, useGroupCountHistory, usePla
 import { useBreedingPlans, useCurrentPlantings, useFields, useGroups, useSeasons } from '../../lib/queries'
 import { supabase } from '../../lib/supabase'
 import { BarsChart, LinesChart, ReportCard } from './Chart'
+import { useRain, useSaleLines } from '../../lib/farmRecords'
+import { growingSeasonRain } from '../../lib/calc/rain'
 
 const rands = (lang: 'en' | 'af') => (n: number) => {
   const a = Math.abs(n)
@@ -30,6 +32,8 @@ export function ReportsPage() {
   const breeding = useBreedingPlans()
   const groups = useGroups()
   const current = useCurrentPlantings()
+  const saleLines = useSaleLines()
+  const rain = useRain()
   const [seasonPick, setSeasonPick] = useState<string | null>(null)
 
   if (seasons.isLoading || fields.isLoading || records.isLoading) return <Loading />
@@ -52,7 +56,7 @@ export function ReportsPage() {
 
   // 2. Inputs, 3. profit, 6. costs — for the chosen season
   const inputs = inputUse(operations, seasonId)
-  const profit = fieldProfit({ fields: fieldList, seasonId, plantings, ops: operations, harvests, costs: costList, pricePerT: priceOf })
+  const profit = fieldProfit({ fields: fieldList, seasonId, plantings, ops: operations, harvests, costs: costList, pricePerT: priceOf, sales: saleLines.data ?? [] })
   const cats = costsByCategory(seasonId, plantings, operations, costList)
   const catKeys: { key: string; label: string }[] = [
     { key: 'seed', label: t('seedWord') }, { key: 'fertiliser', label: t('fertiliser') }, { key: 'spray', label: t('sprayWord') },
@@ -117,10 +121,25 @@ export function ReportsPage() {
         chart={<BarsChart data={yieldChart} x="name" series={seasonList.map((s) => ({ key: String(s.year), label: String(s.year) }))} format={(n) => `${formatNumber(n, 1, lang)} t`} />}
       />
 
+      {(rain.data ?? []).length > 0 && (
+        <ReportCard title={t('rep_rainYield')} note={t('rep_rainYieldNote')}
+          table={<table className="table"><thead><tr><th>{t('field')}</th><th className="num">{t('season')}</th><th className="num">mm</th><th className="num">t/ha</th></tr></thead>
+            <tbody>{fieldList.flatMap((f) => seasonList.map((s) => {
+              const p = plantings.find((x) => x.field_id === f.id && x.season_id === s.id)
+              if (!p) return null
+              const hs = harvests.filter((h) => h.field_id === f.id && h.season_id === s.id)
+              const last = hs.map((h) => h.date).sort().pop() ?? null
+              const mmRain = growingSeasonRain(rain.data ?? [], p.planting_date, last, now)
+              const y = yields.find((x) => x.field.id === f.id)?.seasons[s.id]?.tPerHa
+              return <tr key={`${f.id}${s.id}`}><td>{f.name}<div className="tiny muted">{w(p.crop)}</div></td><td className="num">{s.year}</td><td className="num">{mmRain != null ? formatNumber(mmRain, 0, lang) : '–'}</td><td className="num">{y != null ? formatNumber(y, 2, lang) : '–'}</td></tr>
+            }))}</tbody></table>}
+        />
+      )}
+
       <ReportCard title={t('rep_profit')} note={t('rep_profitNote')}
         table={<table className="table"><thead><tr><th>{t('field')}</th><th className="num">t</th><th className="num">{t('income')}</th><th className="num">{t('costWord')}</th><th className="num">{t('margin')}</th><th className="num">R/ha</th></tr></thead>
           <tbody>{profit.map((p) => (
-            <tr key={p.field.id}><td>{p.field.name}<div className="tiny muted">{p.crop ? w(p.crop) : ''}</div></td>
+            <tr key={p.field.id}><td>{p.field.name}<div className="tiny muted">{p.crop ? w(p.crop) : ''}{p.incomeSource === 'sales' ? ` · ${t('fromSales')}` : ''}</div></td>
               <td className="num">{formatNumber(p.tons, 1, lang)}</td><td className="num">{p.income != null ? R(p.income, lang) : '–'}</td>
               <td className="num">{R(p.cost, lang)}</td><td className={`num ${p.margin != null && p.margin < 0 ? 'warn-text' : ''}`}>{p.margin != null ? R(p.margin, lang) : '–'}</td>
               <td className="num">{p.marginPerHa != null ? formatNumber(p.marginPerHa, 0, lang) : '–'}</td></tr>

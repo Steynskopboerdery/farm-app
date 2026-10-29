@@ -7,7 +7,11 @@ const TILES: { to: string | null; label: DictKey; emoji: string; ownerOnly?: boo
   { to: '/weather', label: 'weather', emoji: '⛅' },
   { to: '/reports', label: 'menuReports', emoji: '📊', ownerOnly: true },
   { to: '/inventory', label: 'menuInventory', emoji: '📦' },
+  { to: '/rain', label: 'rainTitle', emoji: '🌧️' },
+  { to: '/vehicles', label: 'vehiclesTitle', emoji: '🚜' },
+  { to: '/pins', label: 'pinsTitle', emoji: '📍' },
   { to: '/grazing', label: 'menuGrazing', emoji: '🌿' },
+  { to: '/export', label: 'exp_title', emoji: '📤', ownerOnly: true },
   { to: '/settings', label: 'navSettings', emoji: '⚙️' },
 ]
 

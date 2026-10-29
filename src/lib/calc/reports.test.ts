@@ -49,7 +49,18 @@ describe('fieldProfit', () => {
   it('Field 1 wheat: 130 t × R5 500 = R715 000 less seed, inputs and fuel', () => {
     const [f1] = fieldProfit({ fields, seasonId: 's26', plantings, ops, harvests, costs, pricePerT: (c) => (c === 'wheat' ? 5500 : 8200) })
     // 45 000 seed + 101 250 + 25 000 + 5 000 field work + 12 000 fuel = 188 250
-    expect(f1).toMatchObject({ tons: 130, income: 715_000, cost: 188_250, margin: 526_750, costPerHa: 3_765, marginPerHa: 10_535 })
+    expect(f1).toMatchObject({ tons: 130, income: 715_000, cost: 188_250, margin: 526_750, costPerHa: 3_765, marginPerHa: 10_535, incomeSource: 'estimate' })
+  })
+  it('uses real sales linked to the field when there are any (VAT excluded)', () => {
+    const sales = [
+      { field_id: 'f1', season_id: 's26', quantity: 100, unit_price: 5_800 },
+      { field_id: 'f1', season_id: 's26', quantity: 30, unit_price: 5_600 },
+      { field_id: 'f1', season_id: 's25', quantity: 89.3, unit_price: 8_000 },
+    ]
+    const [f1, f4] = fieldProfit({ fields, seasonId: 's26', plantings, ops, harvests, costs, pricePerT: () => 5500, sales })
+    // 580 000 + 168 000 = 748 000
+    expect(f1).toMatchObject({ income: 748_000, margin: 559_750, incomeSource: 'sales' })
+    expect(f4.incomeSource).toBe('estimate')
   })
 })
 

@@ -7,8 +7,8 @@ import { useCurrentPlantings, useFields, useGroups } from '../lib/queries'
 import { AnimalIcon } from './AnimalIcon'
 import { useFarm, type Permission } from '../farm/FarmProvider'
 
-type Kind = 'spray' | 'fertiliser' | 'harvest' | 'planting' | 'other' | 'reminder' | 'animal'
-const KINDS: { kind: Kind; label: DictKey; emoji: string; perm: Permission }[] = [
+type Kind = 'spray' | 'fertiliser' | 'harvest' | 'planting' | 'other' | 'reminder' | 'animal' | 'rain' | 'fuel' | 'pin' | 'diary'
+const KINDS: { kind: Kind; label: DictKey; emoji: string; perm: Permission | null; to?: string }[] = [
   { kind: 'spray', label: 'sprays', emoji: '💧', perm: 'field_records' },
   { kind: 'fertiliser', label: 'fertiliser', emoji: '🌱', perm: 'field_records' },
   { kind: 'harvest', label: 'harvestTitle', emoji: '🌾', perm: 'field_records' },
@@ -16,6 +16,9 @@ const KINDS: { kind: Kind; label: DictKey; emoji: string; perm: Permission }[] =
   { kind: 'other', label: 'otherWork', emoji: '🛠', perm: 'field_records' },
   { kind: 'reminder', label: 'reminders', emoji: '⏰', perm: 'tasks' },
   { kind: 'animal', label: 'animalEvent', emoji: '🐑', perm: 'animal_records' },
+  { kind: 'rain', label: 'rainShort', emoji: '🌧️', perm: null, to: '/rain' },
+  { kind: 'fuel', label: 'fuelShort', emoji: '⛽', perm: null, to: '/vehicles' },
+  { kind: 'pin', label: 'pinShort', emoji: '📍', perm: null, to: '/map' },
 ]
 
 /** Bottom sheet behind the green + button: pick what to record, then which field. */
@@ -43,8 +46,8 @@ export function QuickAddSheet({ onClose }: { onClose: () => void }) {
         </div>
         {!kind ? (
           <div className="kind-grid">
-            {KINDS.filter((k) => can(k.perm)).map((k) => (
-              <button key={k.kind} className="kind-btn" onClick={() => setKind(k.kind)}>
+            {KINDS.filter((k) => !k.perm || can(k.perm)).map((k) => (
+              <button key={k.kind} className="kind-btn" onClick={() => { if (k.to) { onClose(); navigate(k.to) } else setKind(k.kind) }}>
                 <span className="kind-emoji" aria-hidden="true">{k.emoji}</span>
                 <span>{t(k.label)}</span>
               </button>

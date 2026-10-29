@@ -199,3 +199,27 @@ export function skyFromSymbol(symbol: string | null | undefined): Sky {
   if (s.startsWith('clearsky')) return s.endsWith('_night') ? 'moon' : 'sun'
   return 'cloud'
 }
+
+/** The forecast hour closest to a moment (within 90 minutes), e.g. to fill in spraying conditions. */
+export function conditionsAt(hours: Hour[], at: Date): Hour | null {
+  let best: Hour | null = null
+  let gap = Infinity
+  for (const h of hours) {
+    const d = Math.abs(Date.parse(h.time) - at.getTime())
+    if (d < gap) { gap = d; best = h }
+  }
+  return gap <= 90 * 60_000 ? best : null
+}
+
+export type SprayWarning = 'calm' | 'windy' | 'gusty' | 'hot' | 'cold' | 'dry'
+/** What was not ideal about the conditions a spray was applied in (label rules always come first). */
+export function sprayWarnings(c: { windKmh: number | null; gustKmh: number | null; temp: number | null; humidity: number | null }): SprayWarning[] {
+  const out: SprayWarning[] = []
+  if (c.windKmh != null && c.windKmh < 3) out.push('calm')
+  if (c.windKmh != null && c.windKmh > 15) out.push('windy')
+  if (c.gustKmh != null && c.gustKmh > 25) out.push('gusty')
+  if (c.temp != null && c.temp > 30) out.push('hot')
+  if (c.temp != null && c.temp < 5) out.push('cold')
+  if (c.humidity != null && c.humidity < 40) out.push('dry')
+  return out
+}

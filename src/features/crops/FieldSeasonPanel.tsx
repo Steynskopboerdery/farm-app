@@ -14,6 +14,10 @@ import { useI18n, type DictKey } from '../../lib/i18n'
 import { useSeasons } from '../../lib/queries'
 import { supabase } from '../../lib/supabase'
 import type { RecordType } from './RecordFormPage'
+import { compass } from '../../lib/weather'
+import { useRain } from '../../lib/farmRecords'
+import { growingSeasonRain } from '../../lib/calc/rain'
+import { FieldProfitCard } from './FieldProfitCard'
 
 /** Crop records for one field: season picker, records by kind, totals, warnings, reminders and history. */
 export function FieldSeasonPanel({ fieldId, fieldName, hectares }: { fieldId: string; fieldName: string; hectares: number | null }) {
@@ -33,6 +37,9 @@ export function FieldSeasonPanel({ fieldId, fieldName, hectares }: { fieldId: st
   const summary = seasonSummary({ fieldHectares: hectares, plantings, operations: ops, harvests })
 
   const planting = plantings[plantings.length - 1]
+  const rain = useRain()
+  const lastHarvest = [...harvests].sort((a, b) => b.date.localeCompare(a.date))[0]?.date ?? null
+  const seasonRain = rain.data?.length ? growingSeasonRain(rain.data, planting?.planting_date ?? null, lastHarvest, todayIso()) : null
   const sprays = ops.filter((o) => o.type === 'spray')
   const sprayRecs = sprays.map((o) => ({ product: o.product, date: o.date, withholdingPeriodDays: o.withholding_period_days }))
   const conflicts = planting?.expected_harvest_date && harvests.length === 0
@@ -55,6 +62,9 @@ export function FieldSeasonPanel({ fieldId, fieldName, hectares }: { fieldId: st
                 {o.rate != null && ` · ${formatNumber(o.rate, 3, lang)} ${o.rate_unit ?? ''}`}
                 {o.total_amount != null && ` · ${formatNumber(o.total_amount, 1, lang)} ${o.unit ?? ''}`}
               </div>
+              {type === 'spray' && o.wind_kmh != null && (
+                <div className="small muted">🌬️ {formatNumber(o.wind_kmh, 0, lang)} km/h{o.wind_dir != null ? ` ${compass(o.wind_dir, lang)}` : ''}{o.temp_c != null ? ` · ${formatNumber(o.temp_c, 0, lang)}°C` : ''}{o.humidity != null ? ` · ${o.humidity}%` : ''}{o.spray_time ? ` · ${o.spray_time.slice(0, 5)}` : ''}</div>
+              )}
               {type === 'spray' && o.withholding_period_days ? (
                 <div className="small">{t('safeFrom')}: <strong>{formatDateShort(safeHarvestDate({ product: o.product, date: o.date, withholdingPeriodDays: o.withholding_period_days }), lang)}</strong></div>
               ) : null}
@@ -157,8 +167,11 @@ export function FieldSeasonPanel({ fieldId, fieldName, hectares }: { fieldId: st
           )}
           <dt><strong>{t('tonsTotal')}</strong></dt>
           <dd><strong>{summary.tons ? `${formatNumber(summary.tons, 2, lang)} t` : '–'}</strong>{summary.yieldPerHa != null && ` · ${formatNumber(summary.yieldPerHa, 2, lang)} t/ha`}</dd>
+          {seasonRain != null && <><dt>🌧️ {t('rainGrowing')}</dt><dd>{formatNumber(seasonRain, 0, lang)} mm</dd></>}
         </dl>
       </Section>
+
+      {isOwner && seasonId && <FieldProfitCard fieldId={fieldId} seasonId={seasonId} />}
 
       <RotationCard plantings={records.data?.plantings ?? []} />
       <Reminders fieldId={fieldId} fieldName={fieldName} />

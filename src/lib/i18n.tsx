@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 
+import { afFarm, enFarm } from './i18n-farm'
+
 export type Lang = 'en' | 'af'
 
 const en = {
@@ -610,6 +612,7 @@ const en = {
   rotSuggest: 'Could fit next season:',
   rotationDisclaimer: 'General advice for winter cropping. Check with your agronomist for your soils and conditions.',
   offlineWaiting: '{n} change(s) waiting to send. Keep the app open; they go as soon as there is signal.',
+  ...enFarm,
 }
 
 export type DictKey = keyof typeof en
@@ -1213,6 +1216,7 @@ const af: Record<DictKey, string> = {
   rotSuggest: 'Kan volgende seisoen pas:',
   rotationDisclaimer: 'Algemene raad vir wintergewasse. Kontroleer met jou landboukundige vir jou grond en toestande.',
   offlineWaiting: '{n} verandering(e) wag om gestuur te word. Hou die app oop; dit gaan sodra daar sein is.',
+  ...afFarm,
 }
 
 const dicts: Record<Lang, Record<DictKey, string>> = { en, af }

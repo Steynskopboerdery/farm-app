@@ -23,6 +23,8 @@ interface FieldLite { id: string; name: string; hectares: number | null }
 interface PlantingLite { field_id: string; season_id: string; crop: string; seed_cost: number | null }
 interface HarvestLite { field_id: string; season_id: string | null; tons: number }
 interface OpLite { field_id: string; season_id: string | null; type: string; product: string | null; total_amount: number | null; unit: string | null; cost: number | null }
+/** A sales line with the season of its sale. */
+interface SaleLite { field_id: string | null; season_id: string | null; quantity: number; unit_price: number }
 interface CostLite { field_id: string | null; season_id: string | null; category: string; amount: number }
 
 /** Yield per field for each season: crop, tons and t/ha (whole-field area). */
@@ -53,13 +55,15 @@ export function inputUse(ops: OpLite[], seasonId: string) {
 
 /**
  * Cost and profit per field for one season.
- * Income = harvested tons × the planning price for that crop (an estimate until sales are linked to fields).
+ * Income = sales lines linked to the field in that season (excluding VAT); for fields without linked
+ * sales it is harvested tons × the planning price for that crop (an estimate).
  */
 export function fieldProfit(args: {
   fields: FieldLite[]; seasonId: string; plantings: PlantingLite[]; ops: OpLite[]; harvests: HarvestLite[]; costs: CostLite[]
   pricePerT: (crop: string) => number | null
+  sales?: SaleLite[]
 }) {
-  const { fields, seasonId, plantings, ops, harvests, costs, pricePerT } = args
+  const { fields, seasonId, plantings, ops, harvests, costs, pricePerT, sales = [] } = args
   return fields.map((f) => {
     const p = plantings.find((x) => x.field_id === f.id && x.season_id === seasonId)
     const tons = harvests.filter((h) => h.field_id === f.id && h.season_id === seasonId).reduce((s, h) => s + Number(h.tons), 0)
@@ -67,11 +71,14 @@ export function fieldProfit(args: {
     const inputs = ops.filter((o) => o.field_id === f.id && o.season_id === seasonId).reduce((s, o) => s + Number(o.cost ?? 0), 0)
     const other = costs.filter((c) => c.field_id === f.id && c.season_id === seasonId).reduce((s, c) => s + Number(c.amount), 0)
     const cost = r2(seed + inputs + other)
+    const sold = sales.filter((x) => x.field_id === f.id && x.season_id === seasonId)
     const price = p ? pricePerT(p.crop) : null
-    const income = price != null ? r2(tons * price) : null
+    const income = sold.length ? r2(sold.reduce((s, x) => s + Number(x.quantity) * Number(x.unit_price), 0))
+      : price != null ? r2(tons * price) : null
     const margin = income != null ? r2(income - cost) : null
     return {
       field: f, crop: p?.crop ?? null, tons: r3(tons), cost, income, margin,
+      incomeSource: sold.length ? 'sales' as const : income != null ? 'estimate' as const : null,
       costPerHa: f.hectares ? r2(cost / f.hectares) : null,
       marginPerHa: margin != null && f.hectares ? r2(margin / f.hectares) : null,
     }

@@ -14,6 +14,7 @@ import { useCamps, useCurrentPlantings, useFields, useGroups, useOpenTasks } fro
 import { countdown, useLivestockCalendar } from '../livestock/LivestockCalendar'
 import { supabase } from '../../lib/supabase'
 import { WeatherCard, WeatherNow } from '../weather/WeatherCard'
+import { FarmAlerts } from './FarmAlerts'
 import { HeroPhoto } from './HeroPhoto'
 import { debtorsByCustomer } from '../../lib/calc/debtors'
 import { useInvoices } from '../../lib/sales'
@@ -133,6 +134,8 @@ export function DashboardPage() {
           </ul>
         </Section>
       )}
+
+      <FarmAlerts />
 
       {isOwner && <UnpaidInvoicesCard />}
 

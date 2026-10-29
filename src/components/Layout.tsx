@@ -26,9 +26,9 @@ export function Icon({ d, size = 24 }: { d: string; size?: number }) {
 
 export function Layout() {
   const { t } = useI18n()
-  const { farm, can, previewingWorker, setPreviewWorker } = useFarm()
-  // The + button shows for anyone who may record something.
-  const canAdd = can('field_records') || can('animal_records') || can('tasks')
+  const { farm, previewingWorker, setPreviewWorker } = useFarm()
+  // Everyone may record rain, fuel and map pins, so the + button is always there.
+  const canAdd = true
   const online = useOnline()
   const waiting = useMutationState({ filters: { status: 'pending' }, select: (m) => m.state.isPaused }).filter(Boolean).length
   const { pathname } = useLocation()

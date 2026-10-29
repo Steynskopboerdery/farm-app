@@ -22,8 +22,12 @@ import { MenuPage } from './features/menu/MenuPage'
 import { GrazingPage } from './features/grazing/GrazingPage'
 import { InventoryPage } from './features/inventory/InventoryPage'
 import { ItemPage } from './features/inventory/ItemPage'
+import { VehiclePage, VehiclesPage } from './features/vehicles/VehiclesPage'
+import { PinsPage } from './features/map/PinsPage'
+import { ExportPage } from './features/export/ExportPage'
 
 // Charts are large, so the reports load only when opened.
+const RainPage = lazy(() => import('./features/rain/RainPage').then((m) => ({ default: m.RainPage })))
 const ReportsPage = lazy(() => import('./features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })))
 import { CustomerFormPage } from './features/sales/CustomerFormPage'
 import { InvoiceFormPage } from './features/sales/InvoiceFormPage'
@@ -73,6 +77,11 @@ export default function App() {
           <Route path="menu" element={<MenuPage />} />
           <Route path="grazing" element={<GrazingPage />} />
           <Route path="reports" element={<Suspense fallback={<Loading />}><ReportsPage /></Suspense>} />
+          <Route path="rain" element={<Suspense fallback={<Loading />}><RainPage /></Suspense>} />
+          <Route path="vehicles" element={<VehiclesPage />} />
+          <Route path="vehicles/:id" element={<VehiclePage />} />
+          <Route path="pins" element={<PinsPage />} />
+          <Route path="export" element={<ExportPage />} />
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="inventory/item/:id" element={<ItemPage />} />
           <Route path="sales" element={<SalesPage />} />

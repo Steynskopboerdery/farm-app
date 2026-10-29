@@ -15,10 +15,12 @@ import { useI18n } from '../../lib/i18n'
 import { useCamps, useCurrentPlantings, useFields } from '../../lib/queries'
 import { supabase } from '../../lib/supabase'
 import { OVERLAY_KEY } from '../land/MapImportPage'
+import { PIN_EMOJI, usePins } from '../../lib/farmRecords'
+import { PinDetails, PinForm } from './PinSheets'
 
 type Kind = 'field' | 'camp'
 interface Area { kind: Kind; id: string; name: string; hectares: number | null; boundary: Boundary | null; isSample: boolean; crop: string | null }
-type Mode = 'view' | 'drawing' | 'assign' | 'editing'
+type Mode = 'view' | 'drawing' | 'assign' | 'editing' | 'pin'
 
 // Between Swellendam and Bredasdorp, used until outlines exist.
 const DEFAULT_CENTER: L.LatLngTuple = [-34.25, 20.25]
@@ -39,6 +41,11 @@ export function MapPage() {
   const fields = useFields()
   const camps = useCamps()
   const plantings = useCurrentPlantings()
+  const pins = usePins()
+  const pinGroupRef = useRef<L.LayerGroup | null>(null)
+  const [newPin, setNewPin] = useState<{ lat: number; lng: number } | null>(null)
+  const [pinId, setPinId] = useState<string | null>(null)
+  const selectedPin = pinId ? (pins.data ?? []).find((p) => p.id === pinId) ?? null : null
 
   const mapEl = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -47,6 +54,8 @@ export function MapPage() {
   const fittedRef = useRef(false)
 
   const [mode, setMode] = useState<Mode>('view')
+  const modeRef = useRef<Mode>('view')
+  modeRef.current = mode
   const [selected, setSelected] = useState<{ kind: Kind; id: string } | null>(null)
   const [drawTarget, setDrawTarget] = useState<{ kind: Kind; id: string } | null>(null)
   const [pending, setPending] = useState<{ geometry: Boundary; ha: number } | null>(null)
@@ -79,6 +88,7 @@ export function MapPage() {
     L.tileLayer(ESRI_IMAGERY, { maxNativeZoom: 18, maxZoom: 20, attribution: ESRI_ATTRIBUTION }).addTo(map)
     L.tileLayer(ESRI_LABELS, { maxNativeZoom: 18, maxZoom: 20, opacity: 0.8 }).addTo(map)
     groupRef.current = L.featureGroup().addTo(map)
+    pinGroupRef.current = L.layerGroup().addTo(map)
     // Our own help text replaces Geoman's English-only hints.
     map.pm.setGlobalOptions({ allowSelfIntersection: false, snappable: true, tooltips: false })
     mapRef.current = map
@@ -109,6 +119,8 @@ export function MapPage() {
       layer.bindTooltip(a.name, { permanent: true, direction: 'center', className: 'area-label' })
       layer.on('click', (e) => {
         L.DomEvent.stopPropagation(e)
+        if (modeRef.current === 'pin') { setNewPin({ lat: e.latlng.lat, lng: e.latlng.lng }); return }
+        setPinId(null)
         setSelected({ kind: a.kind, id: a.id })
       })
       group.addLayer(layer)
@@ -120,11 +132,47 @@ export function MapPage() {
     }
   }, [areas, selected, mode, params])
 
+  // Pins: an emoji marker each; tap to open.
+  useEffect(() => {
+    const g = pinGroupRef.current
+    if (!g) return
+    g.clearLayers()
+    for (const p of pins.data ?? []) {
+      const icon = L.divIcon({ className: 'pin-marker', html: `<span><i>${PIN_EMOJI[p.kind] ?? '📍'}</i></span>`, iconSize: [34, 34], iconAnchor: [17, 34] })
+      const m = L.marker([p.lat, p.lng], { icon, title: p.title })
+      m.on('click', (e) => { L.DomEvent.stopPropagation(e); setSelected(null); setPinId(p.id) })
+      g.addLayer(m)
+    }
+  }, [pins.data])
+
+  // ?pin=<id> from the pins list
+  useEffect(() => {
+    const id = params.get('pin')
+    const p = id ? (pins.data ?? []).find((x) => x.id === id) : null
+    if (p && mapRef.current) {
+      mapRef.current.setView([p.lat, p.lng], 17)
+      fittedRef.current = true
+      setPinId(p.id)
+      setParams({}, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, pins.data])
+
+  // Pin mode: the next tap on the map places the pin.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || mode !== 'pin') return
+    const place = (e: L.LeafletMouseEvent) => { setNewPin({ lat: e.latlng.lat, lng: e.latlng.lng }) }
+    map.on('click', place)
+    map.getContainer().classList.add('placing-pin')
+    return () => { map.off('click', place); map.getContainer().classList.remove('placing-pin') }
+  }, [mode])
+
   // Tap empty map to clear the selection.
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    const clear = () => { if (mode === 'view') setSelected(null) }
+    const clear = () => { if (mode === 'view') { setSelected(null); setPinId(null) } }
     map.on('click', clear)
     return () => { map.off('click', clear) }
   }, [mode])
@@ -292,12 +340,32 @@ export function MapPage() {
         <button className="btn map-btn" onClick={fitAll}>⤢ {t('mapFitAll')}</button>
       </div>
 
-      {mode === 'view' && !selectedArea && isOwner && (
+      {mode === 'view' && !selectedArea && !selectedPin && (
         <div className="map-sheet compact">
-          <button className="btn primary block" onClick={() => startDrawing(null)}>✎ {t('mapDraw')}</button>
+          <div className="btn-row">
+            {isOwner && <button className="btn primary" onClick={() => startDrawing(null)}>✎ {t('mapDraw')}</button>}
+            <button className={`btn ${isOwner ? '' : 'primary'}`} onClick={() => { setNewPin(null); setMode('pin') }}>📍 {t('pinAdd')}</button>
+          </div>
           <p className="tiny muted">{t('mapAttribution')}</p>
         </div>
       )}
+
+      {mode === 'pin' && !newPin && (
+        <div className="map-sheet">
+          <p>{t('pinPlaceHelp')}</p>
+          <div className="btn-row">
+            <button className="btn" onClick={() => setMode('view')}>{t('cancel')}</button>
+            <button className="btn" onClick={() => {
+              mapRef.current?.locate({ enableHighAccuracy: true })
+              mapRef.current?.once('locationfound', (e: L.LocationEvent) => { mapRef.current?.setView(e.latlng, 17); setNewPin({ lat: e.latlng.lat, lng: e.latlng.lng }) })
+            }}>◎ {t('pinHere')}</button>
+          </div>
+        </div>
+      )}
+      {mode === 'pin' && newPin && (
+        <PinForm at={newPin} onCancel={() => { setNewPin(null); setMode('view') }} onDone={(id) => { setNewPin(null); setMode('view'); setPinId(id) }} />
+      )}
+      {mode === 'view' && selectedPin && !selectedArea && <PinDetails pin={selectedPin} onClose={() => setPinId(null)} />}
 
       {mode === 'drawing' && (
         <div className="map-sheet">

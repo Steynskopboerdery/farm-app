@@ -11,6 +11,7 @@ import { useGroupRecords, useGroupTasks } from '../../lib/livestock'
 import { useAuditLog, useCamps, useGroups, useMembers } from '../../lib/queries'
 import { supabase } from '../../lib/supabase'
 import { countdown } from './LivestockCalendar'
+import { HeadCountSection } from './HeadCountSection'
 
 export function GroupPage() {
   const { id } = useParams<{ id: string }>()
@@ -91,6 +92,8 @@ export function GroupPage() {
           </ul>
         </Section>
       )}
+
+      <HeadCountSection group={group} />
 
       <Section title={t('breeding')} action={add('breeding')}>
         {breeding.length === 0 ? <p className="muted">{t('noEvents')}</p> : (
