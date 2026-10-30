@@ -252,3 +252,42 @@ export function scaleRain(years: Record<string, YearClimate>, factor: number): R
   if (factor === 1) return years
   return Object.fromEntries(Object.entries(years).map(([y, c]) => [y, { ...c, rain: c.rain.map((v) => (v == null ? null : r1(v * factor))) }]))
 }
+
+// Chances --------------------------------------------------------------------------------------------
+
+/** "Chance of at least": the amounts reached in 9, 7, 5, 3 and 1 years out of 10. */
+export const CHANCES = [90, 70, 50, 30, 10]
+
+/** Growing-season rain reached in each of CHANCES' years-in-10, from history (scaled by `factor`). */
+export function rainAtChances(rows: { mm: number }[], factor = 1): { chance: number; mm: number }[] {
+  const mm = rows.map((r) => r.mm)
+  return mm.length ? CHANCES.map((c) => ({ chance: c, mm: r0(quantile(mm, 1 - c / 100) * factor) })) : []
+}
+
+/**
+ * Odds of a drier, normal or wetter growing season than usual (each a third in an average year), from how this
+ * area's rain fell in past El Niño, neutral and La Niña winters, weighted by the forecast chances of each.
+ */
+export function tercileOdds(rows: { year: number; mm: number }[], oni: { season: string; year: number; anom: number }[], probs: { laNina: number; neutral: number; elNino: number } | null) {
+  if (!probs || rows.length < 9) return null
+  const mm = rows.map((r) => r.mm)
+  const lo = quantile(mm, 1 / 3)
+  const hi = quantile(mm, 2 / 3)
+  const winter = new Map(oni.filter((o) => o.season === 'MJJ').map((o) => [o.year, o.anom]))
+  const split = (xs: number[]) => (xs.length < 3 ? [1 / 3, 1 / 3, 1 / 3] : [xs.filter((x) => x < lo).length / xs.length, xs.filter((x) => x >= lo && x <= hi).length / xs.length, xs.filter((x) => x > hi).length / xs.length])
+  const by = (phase: EnsoPhase) => split(rows.filter((r) => winter.has(r.year) && ensoPhase(winter.get(r.year)!) === phase).map((r) => r.mm))
+  const weights: [number, number[]][] = [[probs.elNino, by('elNino')], [probs.neutral, by('neutral')], [probs.laNina, by('laNina')]]
+  const total = weights.reduce((a, [p]) => a + p, 0)
+  if (!total) return null
+  const odds = [0, 1, 2].map((i) => weights.reduce((a, [p, s]) => a + p * s[i], 0) / total)
+  // Whole percentages that add up to 100.
+  const pct = odds.map((o) => Math.round(o * 100))
+  pct[1] += 100 - pct[0] - pct[1] - pct[2]
+  return { drier: pct[0], normal: pct[1], wetter: pct[2] }
+}
+
+/** Price fan: the inner band (about 2 years in 3) is priceOutlook's low–high; the outer band holds about 9 in 10. */
+export function fanFactors(o: { low: number; likely: number; high: number }) {
+  const spread = o.high / o.likely
+  return { low: o.low, high: o.high, outerLow: r2(o.likely / Math.pow(spread, 1.645)), outerHigh: r2(o.likely * Math.pow(spread, 1.645)) }
+}

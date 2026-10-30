@@ -5,8 +5,8 @@ import { useFarm } from '../../farm/FarmProvider'
 import { suggestedNextCrops } from '../../lib/calc/advice'
 import { todayIso } from '../../lib/calc/dates'
 import {
-  achievedShare, autumnBreak, ensoAnalogs, ensoPhase, ensoTilt, gaugeFactor, GROWING, inRand, marginGrid, monthNormals,
-  priceOutlook, rainByYear, rainStats, scaleRain, seasonSoFar, WATER_USE, yieldScenarios,
+  achievedShare, autumnBreak, ensoAnalogs, ensoPhase, ensoTilt, fanFactors, gaugeFactor, GROWING, inRand, marginGrid, monthNormals,
+  priceOutlook, rainAtChances, rainByYear, rainStats, scaleRain, seasonSoFar, tercileOdds, WATER_USE, yieldScenarios,
 } from '../../lib/calc/outlook'
 import { dailyRain } from '../../lib/calc/rain'
 import { useRain } from '../../lib/farmRecords'
@@ -17,6 +17,7 @@ import { useOpenTasks, useSeasons, useFields } from '../../lib/queries'
 import { ok, useOutlook } from '../../lib/useOutlook'
 import { useLivestockCalendar } from '../livestock/LivestockCalendar'
 import { ChartCard, RecordedPredictedBars, RecordedPredictedLine, ScrollingBars, type BarRow, type LineRow } from './OutlookCharts'
+import { BigNumbers, ChanceLadder, FanKey, OddsBar, PriceFan, RangeKey, RangeRows, SeasonBuildUp, type BigNumber, type BuildUpRow, type FanRow } from './OutlookVisuals'
 
 // World price series shown, with what they tell the farm.
 const MARKETS: { key: string; label: DictKey; crop?: string; per: 't' | 'kg' }[] = [
@@ -126,7 +127,58 @@ export function OutlookPage() {
     const base = e?.price_per_t ? Number(e.price_per_t) : m ? m.o.last : null
     if (!base) return null
     const f = m?.o ?? { low: 0.85, likely: 1, high: 1.15 }
-    return { low: base * f.low, likely: base * f.likely, high: base * f.high, own: !!e?.price_per_t }
+    return { now: base, low: base * f.low, likely: base * f.likely, high: base * f.high, own: !!e?.price_per_t }
+  }
+  const tha = (n: number) => `${formatNumber(n, 1, lang)} t/ha`
+  const monthYear = (iso: string) => `${monthName(Number(iso.slice(5, 7)) - 1)} ${iso.slice(2, 4)}`
+
+  // Rain reached in 9, 7, 5, 3 and 1 years in 10: this year = what fell plus the rest of the season, next year = history × outlook.
+  const rainChances = !stats ? [] : year === thisYear && current
+    ? rainAtChances(seasonRows).map((c) => ({ chance: c.chance, mm: Math.round(current.soFar + ((current.normal - current.soFar) * c.mm) / stats.normal) }))
+    : rainAtChances(seasonRows, tiltF)
+  const odds = year > thisYear && enso && seasonRows.length ? tercileOdds(seasonRows, enso.oni, winterProb) : null
+
+  // Rain adding up from 1 April: the normal season's shape, the dry–wet spread, what fell and where it is heading.
+  const buildUp = (() => {
+    if (!stats || !climate || !yearRain) return null
+    const med = GROWING.map((m) => normals[m].rain ?? 0)
+    const total = med.reduce((a, b) => a + b, 0) || 1
+    let c = 0
+    const shape = [0, ...med.map((v) => (c += v) / total)]
+    const rows: BuildUpRow[] = shape.map((f, i) => ({ name: i === 0 ? '' : monthName(GROWING[i - 1]), normal: Math.round(f * stats.normal), band: [Math.round(f * stats.dry), Math.round(f * stats.wet)] }))
+    if (year === thisYear && current) {
+      const done = Math.min(GROWING.length, Math.max(0, lastMonth - GROWING[0] + 1))
+      let cum = 0
+      for (let i = 0; i <= done; i++) {
+        if (i > 0) cum += (climate.currentYearRain?.[GROWING[i - 1]] ?? 0) * gauge.factor
+        rows[i].recorded = Math.round(cum)
+      }
+      if (done < GROWING.length) {
+        let p = cum
+        rows[done].predicted = Math.round(cum)
+        for (let i = done + 1; i < rows.length; i++) { p += normals[GROWING[i - 1]].rain ?? 0; rows[i].predicted = Math.round(p) }
+      }
+      return { rows, soFar: current.soFar, likely: current.normal }
+    }
+    rows.forEach((r, i) => { r.predicted = Math.round(shape[i] * yearRain.normal) })
+    return { rows, soFar: null, likely: yearRain.normal }
+  })()
+
+  // Big numbers at the top: season rain, the main crop's yield and (owners) its price.
+  const mainCrop = cropList[0]
+  const big: BigNumber[] = []
+  if (yearRain) {
+    big.push({ title: t('ol_bigRain', { year }), value: mm(yearRain.normal), range: `${formatNumber(yearRain.dry, 0, lang)}–${mm(yearRain.wet)}`, lo: yearRain.dry, mid: yearRain.normal, hi: yearRain.wet,
+      mark: current?.soFar, markLabel: current ? t('ol_markThisYear', { v: mm(current.soFar) }) : undefined, done: t('ol_seasonDone') })
+    if (mainCrop) {
+      const y = yieldScenarios(mainCrop, yearRain, share.share)
+      const lastHarvest = ownResults.filter((r) => r.crop === mainCrop).at(-1)
+      big.push({ title: t('ol_bigYield', { crop: w(mainCrop) }), value: tha(y.normal!), range: `${formatNumber(y.dry!, 1, lang)}–${tha(y.wet!)}`, lo: y.dry!, mid: y.normal!, hi: y.wet!,
+        mark: lastHarvest?.tPerHa, markLabel: lastHarvest ? t('ol_markHarvest', { v: tha(lastHarvest.tPerHa) }) : undefined, done: t('ol_seasonDone') })
+      const price = isOwner ? priceFor(mainCrop) : null
+      if (price) big.push({ title: t('ol_bigPrice', { crop: w(mainCrop) }), value: `${Rk(price.likely)}/t`, range: `${Rk(price.low)}–${Rk(price.high)}`, lo: price.low, mid: price.likely, hi: price.high,
+        mark: price.now, markLabel: t('ol_markPrice', { v: `${R(price.now)}/t` }) })
+    }
   }
 
   const err = (p: unknown) => (p && typeof p === 'object' && 'error' in p ? String((p as { error: string }).error) : null)
@@ -145,6 +197,8 @@ export function OutlookPage() {
       </div>
       <ErrorText error={outlook.error} />
       {sourceErrors.length > 0 && <p className="warning small">{t('ol_someMissing')} {sourceErrors.join(' · ')}</p>}
+
+      {big.length > 0 && <BigNumbers cards={big} />}
 
       {/* In short */}
       <section className="card stack">
@@ -172,6 +226,35 @@ export function OutlookPage() {
         </ul>
         <p className="tiny muted">{t('ol_disclaimer')}</p>
       </section>
+
+      {/* Rain adding up through the season */}
+      {buildUp && stats && (
+        <ChartCard title={t('ol_buildUpTitle', { year })} legend={false} note={year === thisYear ? t('ol_buildUpNow') : t('ol_buildUpNext')}
+          chart={<SeasonBuildUp data={buildUp.rows} format={mm} footer={(
+            <div className="build-up-sum">
+              {buildUp.soFar != null && <span style={{ color: '#1f5fae' }}>{t('ol_buildSoFar', { v: mm(buildUp.soFar) })}</span>}
+              <strong style={{ color: '#c4511f' }}>{t('ol_buildLikely', { v: mm(buildUp.likely) })}</strong>
+              <span className="muted">{t('ol_buildNormal', { v: mm(stats.normal) })}</span>
+            </div>
+          )} />}
+          table={<table className="table"><thead><tr><th /><th className="num">{t('ol_normalSeason')}</th><th className="num">{t('ol_dryToWet')}</th><th className="num">{year === thisYear ? t('ol_soFarKey') : t('ol_predicted')}</th></tr></thead>
+            <tbody>{buildUp.rows.slice(1).map((r) => (
+              <tr key={r.name}><td>{r.name}</td><td className="num">{r.normal}</td><td className="num">{r.band[0]}–{r.band[1]}</td><td className="num">{r.recorded ?? (r.predicted != null ? `${r.predicted}*` : '–')}</td></tr>
+            ))}</tbody></table>}
+        />
+      )}
+
+      {/* Drier or wetter next winter */}
+      {odds && (
+        <ChartCard title={t('ol_oddsTitle', { year })} legend={false} note={t('ol_oddsNote')}
+          chart={<OddsBar {...odds} />}
+          table={<table className="table"><tbody>
+            <tr><td>{t('ol_drier')}</td><td className="num">{odds.drier}%</td></tr>
+            <tr><td>{t('ol_normal')}</td><td className="num">{odds.normal}%</td></tr>
+            <tr><td>{t('ol_wetter')}</td><td className="num">{odds.wetter}%</td></tr>
+          </tbody></table>}
+        />
+      )}
 
       {/* Growing-season rain, every year since 1981, with this / next year predicted */}
       {stats && yearRain && (
@@ -246,11 +329,21 @@ export function OutlookPage() {
       {yearRain && cropList.length > 0 && (
         <ChartCard title={t('ol_yieldTitle', { year })}
           note={share.from ? t('ol_yieldOwn', { n: share.from, pct: Math.round(share.share * 100) }) : t('ol_yieldDefault', { pct: Math.round(share.share * 100) })}
-          chart={<RecordedPredictedBars format={(n) => formatNumber(n, 1, lang)} data={cropList.flatMap((c) => {
-            const y = yieldScenarios(c, yearRain, share.share)
-            const own = ownResults.filter((r) => r.crop === c).slice(-3).map((r): BarRow => ({ name: `${w(c)} ${r.year}`, recorded: r.tPerHa }))
-            return [...own, { name: `${w(c)} ${year}`, predicted: y.normal, low: y.dry, high: y.wet }]
-          })} />}
+          chart={[
+            { label: t('ol_viewRange'), legend: <RangeKey tick={ownResults.length ? t('ol_viewPast') : undefined} />, chart: <RangeRows format={tha} rows={cropList.map((c) => {
+              const y = yieldScenarios(c, yearRain, share.share)
+              return { label: w(c), lo: y.dry!, mid: y.normal!, hi: y.wet!, mark: ownResults.filter((r) => r.crop === c).at(-1)?.tPerHa }
+            })} /> },
+            ...cropList.filter((c) => { const y = yieldScenarios(c, yearRain, share.share); return y.dry !== y.wet }).map((c) => ({
+              label: w(c), legend: false,
+              chart: <><ChanceLadder format={tha} rungs={rainChances.map((r) => ({ chance: r.chance, value: yieldScenarios(c, { dry: r.mm, normal: r.mm, wet: r.mm }, share.share).normal ?? 0 }))} /><p className="tiny muted">{t('ol_ladderNote')}</p></>,
+            })),
+            ...(ownResults.length ? [{ label: t('ol_viewPast'), chart: <RecordedPredictedBars format={(n) => formatNumber(n, 1, lang)} data={cropList.flatMap((c) => {
+              const y = yieldScenarios(c, yearRain, share.share)
+              const own = ownResults.filter((r) => r.crop === c).slice(-3).map((r): BarRow => ({ name: `${w(c)} ${r.year}`, recorded: r.tPerHa }))
+              return [...own, { name: `${w(c)} ${year}`, predicted: y.normal, low: y.dry, high: y.wet }]
+            })} /> }] : []),
+          ]}
           table={<table className="table"><thead><tr><th>{t('crop')}</th><th className="num">{t('ol_dry')}</th><th className="num">{t('ol_normal')}</th><th className="num">{t('ol_wet')}</th></tr></thead>
             <tbody>{cropList.map((c) => {
               const y = yieldScenarios(c, yearRain, share.share)
@@ -270,29 +363,33 @@ export function OutlookPage() {
       {isOwner && priceRows.length > 0 && (
         <ChartCard title={t('ol_marketsTitle')}
           note={<>{t('ol_marketsNote')} {markets?.updated ? `World Bank, ${markets.updated}.` : ''}</>}
+          legend={<FanKey />}
           chart={(['1y', '5y'] as const).map((span) => ({
             label: t(span === '1y' ? 'ol_view1y' : 'ol_view5y'),
             chart: <div className="stack">{priceRows.filter((p) => ['rapeseedOil', 'wheat', 'lamb', 'dap'].includes(p.key)).map((p) => {
               const hist = p.rand.slice(span === '1y' ? -13 : -61)
               const last = hist[hist.length - 1]
-              const [yy, mm2] = last[0].split('-').map(Number)
-              // Month by month to harvest, so the forecast takes as much room on the chart as the time it covers.
-              const ahead = Array.from({ length: horizon }, (_, i): LineRow => {
+              const [yy, mo] = last[0].split('-').map(Number)
+              const ff = fanFactors(p.o)
+              // Month by month to harvest. The trend grows with time; the uncertainty with the square root of time.
+              const ahead = Array.from({ length: horizon }, (_, i): FanRow => {
                 const f = (i + 1) / horizon
-                const at = (x: number) => last[1] * Math.pow(x, f)
-                return { name: new Date(Date.UTC(yy, mm2 - 1 + i + 1, 1)).toISOString().slice(0, 7), predicted: at(p.o.likely), low: at(p.o.low), high: at(p.o.high) }
+                const band = (x: number) => last[1] * Math.pow(p.o.likely, f) * Math.pow(x / p.o.likely, Math.sqrt(f))
+                return { name: monthYear(new Date(Date.UTC(yy, mo - 1 + i + 1, 1)).toISOString()), predicted: last[1] * Math.pow(p.o.likely, f), inner: [band(ff.low), band(ff.high)], outer: [band(ff.outerLow), band(ff.outerHigh)] }
               })
+              const today = monthYear(last[0])
               return (
                 <div key={p.key}>
-                  <h3 className="h4">{t(p.label)} <span className="tiny muted">({p.unit})</span></h3>
-                  <RecordedPredictedLine height={180} format={R} axis={Rk} data={[
-                    ...hist.slice(0, -1).map(([m, v]): LineRow => ({ name: m, recorded: v })),
-                    { name: last[0], recorded: last[1], predicted: last[1], low: last[1], high: last[1] },
+                  <div className="fan-head"><h3 className="h4">{t(p.label)} <span className="tiny muted">({p.unit})</span></h3>
+                    <span className="fan-to">{t('ol_fanBy', { year, v: '' })}<strong style={{ color: '#c4511f' }}>{R(p.o.last * p.o.likely)}</strong></span></div>
+                  <PriceFan format={R} axis={Rk} today={today} data={[
+                    ...hist.slice(0, -1).map(([m, v]): FanRow => ({ name: monthYear(m), recorded: v })),
+                    { name: today, recorded: last[1], predicted: last[1], inner: [last[1], last[1]], outer: [last[1], last[1]] },
                     ...ahead,
                   ]} />
                 </div>
               )
-            })}</div>,
+            })}<p className="tiny muted">{t('ol_fanNote')}</p></div>,
           }))}
           table={<table className="table"><thead><tr><th /><th className="num">{t('ol_now')}</th><th className="num">{t('ol_lastYear')}</th><th className="num">{t('ol_trend5')}</th><th className="num">{t('ol_byHarvest', { year })}</th></tr></thead>
             <tbody>{priceRows.map((p) => (
@@ -313,7 +410,8 @@ export function OutlookPage() {
         return (
           <ChartCard key={c} title={t('ol_profitTitle', { crop: w(c), year })}
             note={ha > 1 ? t('ol_profitNoteHa', { ha: formatNumber(ha, 0, lang), cost: R(Number(e.input_cost_per_ha)), price: price.own ? t('ol_yourPrice') : t('ol_worldPrice') }) : t('ol_profitNotePerHa', { cost: R(Number(e.input_cost_per_ha)) })}
-            chart={<RecordedPredictedBars format={(n) => R(n)} axis={Rk} data={(['dry', 'normal', 'wet'] as const).map((k): BarRow => ({ name: t(`ol_${k}` as DictKey), predicted: g[k].likely, low: g[k].low, high: g[k].high }))} />}
+            legend={<p className="tiny muted">{t('ol_profitRows')}</p>}
+            chart={<RangeRows zero format={Rk} rows={(['dry', 'normal', 'wet'] as const).map((k) => ({ label: t(`ol_${k}` as DictKey), sub: tha(y[k] ?? 0), lo: g[k].low ?? 0, mid: g[k].likely ?? 0, hi: g[k].high ?? 0 }))} />}
             table={<table className="table"><thead><tr><th /><th className="num">{t('ol_priceLow')}<div className="tiny muted">{R(price.low)}/t</div></th><th className="num">{t('ol_priceLikely')}<div className="tiny muted">{R(price.likely)}/t</div></th><th className="num">{t('ol_priceHigh')}<div className="tiny muted">{R(price.high)}/t</div></th></tr></thead>
               <tbody>{(['dry', 'normal', 'wet'] as const).map((k) => (
                 <tr key={k}><td>{t(`ol_${k}` as DictKey)}<div className="tiny muted">{formatNumber(y[k], 2, lang)} t/ha</div></td>

@@ -8,14 +8,14 @@ import { SERIES } from '../reports/Chart'
 export const RECORDED = SERIES[0]
 export const PREDICTED = SERIES[1]
 const GRID = '#e6ebe2'
-const AXIS = { fontSize: 12, fill: '#55645a' }
+const AXIS = { fontSize: 13, fill: '#55645a' }
 const TIP = { borderRadius: 12, border: '1px solid #e1e7dc' }
 
 /** One way of looking at a chart (e.g. "Recent" / "All years"); a minWidth makes it scroll sideways. */
-export interface ChartView { label: string; chart: ReactNode; minWidth?: number }
+export interface ChartView { label: string; chart: ReactNode; minWidth?: number; legend?: boolean | ReactNode }
 
 /** A card that shows a chart first, with buttons to change the time span and to see the numbers as a table. */
-export function ChartCard({ title, note, chart, table, legend = true }: { title: string; note?: ReactNode; chart: ReactNode | ChartView[]; table: ReactNode; legend?: boolean }) {
+export function ChartCard({ title, note, chart, table, legend = true }: { title: string; note?: ReactNode; chart: ReactNode | ChartView[]; table: ReactNode; legend?: boolean | ReactNode }) {
   const { t } = useI18n()
   const [asTable, setAsTable] = useState(false)
   const views = Array.isArray(chart) ? chart : [{ label: '', chart }]
@@ -38,7 +38,7 @@ export function ChartCard({ title, note, chart, table, legend = true }: { title:
               {views.map((v, i) => <button key={v.label} role="tab" aria-selected={i === view} className={`chip ${i === view ? 'on' : ''}`} onClick={() => setView(i)}>{v.label}</button>)}
             </div>
           )}
-          {legend && <KeyRow />}
+          {(current.legend ?? legend) === true ? <KeyRow /> : (current.legend ?? legend) || null}
           {current.minWidth ? (
             <div className="chart-scroll" ref={scroller}><div className="chart-box" style={{ minWidth: current.minWidth }}>{current.chart}</div></div>
           ) : <div className="chart-box">{current.chart}</div>}

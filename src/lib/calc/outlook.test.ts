@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  achievedShare, autumnBreak, ensoAnalogs, ensoPhase, ensoTilt, gaugeFactor, inRand, marginGrid, monthNormals, potentialYield,
+  achievedShare, fanFactors, rainAtChances, tercileOdds, autumnBreak, ensoAnalogs, ensoPhase, ensoTilt, gaugeFactor, inRand, marginGrid, monthNormals, potentialYield,
   priceOutlook, quantile, rainByYear, rainStats, seasonSoFar, slope, yieldScenarios, type YearClimate,
 } from './outlook'
 
@@ -104,5 +104,36 @@ describe('prices', () => {
     const g = marginGrid(100, { dry: 1.2, normal: 1.8, wet: 2.4 }, { low: 8000, likely: 9000, high: 10000 }, 6500)
     expect(g.normal.likely).toBe(970_000)
     expect(g.dry.low).toBe(310_000)
+  })
+})
+
+describe('chances', () => {
+  const rows = Array.from({ length: 11 }, (_, i) => ({ year: 2000 + i, mm: 300 + i * 10 }))
+  it('gives the rain reached in 9, 7, 5, 3 and 1 years in 10', () => {
+    expect(rainAtChances(rows)).toEqual([
+      { chance: 90, mm: 310 }, { chance: 70, mm: 330 }, { chance: 50, mm: 350 }, { chance: 30, mm: 370 }, { chance: 10, mm: 390 },
+    ])
+    expect(rainAtChances(rows, 0.5)[2].mm).toBe(175)
+    expect(rainAtChances([])).toEqual([])
+  })
+  it('turns the El Niño outlook into dry / normal / wet odds that add to 100', () => {
+    // El Niño winters were the dry years, La Niña the wet ones.
+    const oni = rows.map((r) => ({ season: 'MJJ', year: r.year, anom: r.mm < 335 ? 1 : r.mm > 365 ? -1 : 0 }))
+    const allEl = tercileOdds(rows, oni, { elNino: 100, neutral: 0, laNina: 0 })!
+    expect(allEl.drier).toBe(100)
+    const even = tercileOdds(rows, oni, { elNino: 34, neutral: 33, laNina: 33 })!
+    expect(even.drier + even.normal + even.wetter).toBe(100)
+    expect(Math.abs(even.drier - 33)).toBeLessThan(3)
+    expect(tercileOdds(rows, oni, null)).toBeNull()
+    expect(tercileOdds(rows.slice(0, 4), oni, { elNino: 1, neutral: 1, laNina: 1 })).toBeNull()
+  })
+  it('falls back to even odds for a phase with too few past years', () => {
+    const oni = rows.map((r) => ({ season: 'MJJ', year: r.year, anom: 0 }))
+    expect(tercileOdds(rows, oni, { elNino: 100, neutral: 0, laNina: 0 })).toEqual({ drier: 33, normal: 34, wetter: 33 })
+  })
+  it('widens the price fan to about 9 years in 10', () => {
+    const f = fanFactors({ low: 0.9, likely: 1, high: 1.1 })
+    expect(f.outerHigh).toBeGreaterThan(1.1)
+    expect(f.outerLow).toBeLessThan(0.9)
   })
 })
