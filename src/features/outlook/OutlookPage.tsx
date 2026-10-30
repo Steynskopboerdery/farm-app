@@ -32,6 +32,9 @@ const MARKETS: { key: string; label: DictKey; crop?: string; per: 't' | 'kg' }[]
   { key: 'crude', label: 'ol_mkt_crude', per: 't' },
 ]
 
+// Middle month of each 3-month El Niño season (DJF of a year is centred on its January).
+const ENSO_MID: Record<string, number> = { DJF: 1, JFM: 2, FMA: 3, MAM: 4, AMJ: 5, MJJ: 6, JJA: 7, JAS: 8, ASO: 9, SON: 10, OND: 11, NDJ: 12 }
+
 export function OutlookPage() {
   const { t, w, lang } = useI18n()
   const { isOwner } = useFarm()
@@ -130,7 +133,6 @@ export function OutlookPage() {
     return { now: base, low: base * f.low, likely: base * f.likely, high: base * f.high, own: !!e?.price_per_t }
   }
   const tha = (n: number) => `${formatNumber(n, 1, lang)} t/ha`
-  const monthYear = (iso: string) => `${monthName(Number(iso.slice(5, 7)) - 1)} ${iso.slice(2, 4)}`
 
   // Rain reached in 9, 7, 5, 3 and 1 years in 10: this year = what fell plus the rest of the season, next year = history × outlook.
   const rainChances = !stats ? [] : year === thisYear && current
@@ -308,7 +310,7 @@ export function OutlookPage() {
         <ChartCard title={t('ol_ensoTitle')} legend={false}
           note={<>{t('ol_ensoNote')} {enso.issued ? `NOAA, ${enso.issued}.` : ''}</>}
           chart={(() => {
-            const rows = (from: number) => enso.oni.filter((o) => o.year >= from).map((o): LineRow => ({ name: `${o.season} ${String(o.year).slice(2)}`, recorded: o.anom }))
+            const rows = (from: number) => enso.oni.filter((o) => o.year >= from).map((o): LineRow => ({ name: `${o.year}-${String(ENSO_MID[o.season] ?? 1).padStart(2, '0')}`, label: `${o.season} ${o.year}`, recorded: o.anom }))
             const f = (n: number) => formatNumber(n, 1, lang)
             return [
               { label: t('ol_view2y'), chart: <RecordedPredictedLine format={f} data={rows(thisYear - 1)} /> },
@@ -375,15 +377,15 @@ export function OutlookPage() {
               const ahead = Array.from({ length: horizon }, (_, i): FanRow => {
                 const f = (i + 1) / horizon
                 const band = (x: number) => last[1] * Math.pow(p.o.likely, f) * Math.pow(x / p.o.likely, Math.sqrt(f))
-                return { name: monthYear(new Date(Date.UTC(yy, mo - 1 + i + 1, 1)).toISOString()), predicted: last[1] * Math.pow(p.o.likely, f), inner: [band(ff.low), band(ff.high)], outer: [band(ff.outerLow), band(ff.outerHigh)] }
+                return { name: new Date(Date.UTC(yy, mo - 1 + i + 1, 1)).toISOString().slice(0, 7), predicted: last[1] * Math.pow(p.o.likely, f), inner: [band(ff.low), band(ff.high)], outer: [band(ff.outerLow), band(ff.outerHigh)] }
               })
-              const today = monthYear(last[0])
+              const today = last[0]
               return (
                 <div key={p.key}>
                   <div className="fan-head"><h3 className="h4">{t(p.label)} <span className="tiny muted">({p.unit})</span></h3>
                     <span className="fan-to">{t('ol_fanBy', { year, v: '' })}<strong style={{ color: '#c4511f' }}>{R(p.o.last * p.o.likely)}</strong></span></div>
                   <PriceFan format={R} axis={Rk} today={today} data={[
-                    ...hist.slice(0, -1).map(([m, v]): FanRow => ({ name: monthYear(m), recorded: v })),
+                    ...hist.slice(0, -1).map(([m, v]): FanRow => ({ name: m, recorded: v })),
                     { name: today, recorded: last[1], predicted: last[1], inner: [last[1], last[1]], outer: [last[1], last[1]] },
                     ...ahead,
                   ]} />

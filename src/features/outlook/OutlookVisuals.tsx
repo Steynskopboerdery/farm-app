@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react'
 import { Area, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useI18n } from '../../lib/i18n'
-import { PREDICTED, RECORDED } from './OutlookCharts'
+import { PREDICTED, RECORDED, useSixMonthAxis } from './OutlookCharts'
 
 const GRID = '#e6ebe2'
 const AXIS = { fontSize: 13, fill: '#55645a' }
@@ -160,13 +160,15 @@ export interface FanRow { name: string; recorded?: number | null; predicted?: nu
 /** Price fan: history in blue, then a band that widens the further ahead it looks (dark = 2 years in 3, pale = 9 in 10). */
 export function PriceFan({ data, today, format, axis = format, height = 210 }: { data: FanRow[]; today: string; format: (n: number) => string; axis?: (n: number) => string; height?: number }) {
   const { t } = useI18n()
+  const time = useSixMonthAxis(data.map((r) => r.name))
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 18, right: 12, left: 0, bottom: 0 }}>
         <CartesianGrid vertical={false} stroke={GRID} />
-        <XAxis dataKey="name" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} interval="preserveStartEnd" minTickGap={30} />
+        {time.lines}
+        <XAxis dataKey="name" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} {...time.xAxis} />
         <YAxis tick={AXIS} tickLine={false} axisLine={false} width={56} domain={['auto', 'auto']} tickCount={5} tickFormatter={(v: number) => axis(v)} />
-        <Tooltip contentStyle={TIP} formatter={(v, name) => (Array.isArray(v) ? [`${format(Number(v[0]))}–${format(Number(v[1]))}`, name] : [format(Number(v)), name])} />
+        <Tooltip contentStyle={TIP} labelFormatter={time.tipLabel} formatter={(v, name) => (Array.isArray(v) ? [`${format(Number(v[0]))}–${format(Number(v[1]))}`, name] : [format(Number(v)), name])} />
         <Area dataKey="outer" name={t('ol_fanOuter')} stroke="none" fill={PREDICTED} fillOpacity={0.12} isAnimationActive={false} />
         <Area dataKey="inner" name={t('ol_fanInner')} stroke="none" fill={PREDICTED} fillOpacity={0.24} isAnimationActive={false} />
         <ReferenceLine x={today} stroke={NORMAL} strokeDasharray="3 3" label={{ value: t('ol_today'), position: 'top', fontSize: 13, fill: '#55645a' }} />

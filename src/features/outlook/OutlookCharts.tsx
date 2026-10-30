@@ -1,7 +1,7 @@
 // Charts for the Prediction tab: what was recorded in blue (series 1), what is predicted in orange (series 2),
 // with the likely range as error bars or a pale orange band. Every chart has a table view.
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Area, Bar, CartesianGrid, ComposedChart, ErrorBar, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, Bar, CartesianGrid, ComposedChart, ErrorBar, Legend, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useI18n } from '../../lib/i18n'
 import { SERIES } from '../reports/Chart'
 
@@ -90,19 +90,21 @@ export function RecordedPredictedBars({ data, format, axis = format, height = 26
   )
 }
 
-export interface LineRow { name: string; recorded?: number | null; predicted?: number | null; low?: number | null; high?: number | null }
+export interface LineRow { name: string; label?: string; recorded?: number | null; predicted?: number | null; low?: number | null; high?: number | null }
 
 /** Line: recorded history in blue; the forecast in dashed orange with a pale orange band for the likely range. */
 export function RecordedPredictedLine({ data, format, axis = format, height = 240 }: { data: LineRow[]; format: (n: number) => string; axis?: (n: number) => string; height?: number }) {
   const { t } = useI18n()
   const rows = data.map((r) => ({ ...r, band: r.low != null && r.high != null ? [r.low, r.high] : undefined }))
+  const time = useSixMonthAxis(data.map((r) => r.name))
   return (
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={rows} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
         <CartesianGrid vertical={false} stroke={GRID} />
-        <XAxis dataKey="name" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} interval="preserveStartEnd" minTickGap={24} />
+        {time.lines}
+        <XAxis dataKey="name" tick={AXIS} tickLine={false} axisLine={{ stroke: GRID }} {...time.xAxis} />
         <YAxis tick={AXIS} tickLine={false} axisLine={false} width={52} domain={['auto', 'auto']} tickCount={5} tickFormatter={(v: number) => axis(v)} />
-        <Tooltip contentStyle={TIP}
+        <Tooltip contentStyle={TIP} labelFormatter={time.tipLabel}
           formatter={(v, name) => (Array.isArray(v) ? [`${format(Number(v[0]))}–${format(Number(v[1]))}`, name] : [format(Number(v)), name])} />
         <Area dataKey="band" name={t('ol_range')} stroke="none" fill={PREDICTED} fillOpacity={0.18} isAnimationActive={false} />
         <Line dataKey="recorded" name={t('ol_recorded')} stroke={RECORDED} strokeWidth={2} dot={false} isAnimationActive={false} activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }} connectNulls={false} />
@@ -110,6 +112,30 @@ export function RecordedPredictedLine({ data, format, axis = format, height = 24
       </ComposedChart>
     </ResponsiveContainer>
   )
+}
+
+/**
+ * Time axis marked every 6 months (January and July) for rows named 'YYYY-MM'. Each mark gets a faint line;
+ * the labels read "Jan 26" / "Jul 26" when there is room, otherwise just the year at each January (over many years, every few years).
+ */
+export function useSixMonthAxis(names: string[]) {
+  const { lang } = useI18n()
+  const marks = names.filter((n) => n.endsWith('-01') || n.endsWith('-07'))
+  const month = (n: string) => new Intl.DateTimeFormat(lang === 'af' ? 'af-ZA' : 'en-ZA', { month: 'short', timeZone: 'UTC' }).format(new Date(`${n}-15T12:00:00Z`))
+  const januaries = marks.filter((n) => n.endsWith('-01'))
+  const every = Math.max(1, Math.ceil(januaries.length / 7))
+  const label = (n: string) => {
+    if (marks.length <= 6) return `${month(n)} ${n.slice(2, 4)}`
+    if (!n.endsWith('-01')) return ''
+    return januaries.indexOf(n) % every === 0 ? n.slice(0, 4) : ''
+  }
+  return {
+    xAxis: { ticks: marks, interval: 0 as const, tickFormatter: label },
+    // Over many years a line every 6 months would be a solid block, so then only the labelled years get one.
+    lines: (marks.length <= 24 ? marks : marks.filter((m) => label(m))).map((m) => <ReferenceLine key={m} x={m} stroke={GRID} />),
+    /** Tooltip heading: the row's own label if it has one, else "Mar 2026". */
+    tipLabel: (n: unknown, payload: readonly { payload?: { label?: string } }[]) => payload?.[0]?.payload?.label ?? `${month(String(n))} ${String(n).slice(0, 4)}`,
+  }
 }
 
 /** A round top for a scale of 4 equal steps (e.g. 500 = 0 / 125 / 250 / 375 / 500), at or above n. */
