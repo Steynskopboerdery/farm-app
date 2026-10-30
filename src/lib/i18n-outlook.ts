@@ -2,6 +2,13 @@
 
 export const enOutlook = {
   ol_title: 'Predictions',
+  ol_viewRecent: 'This & next year',
+  ol_view10: '10 years',
+  ol_viewAll: 'All years',
+  ol_view2y: '2 years',
+  ol_view1y: '1 year',
+  ol_view5y: '5 years',
+  ol_swipe: '← Swipe sideways to see all the years →',
   ol_loading: 'Fetching 45 years of weather, the El Niño outlook and world prices… (the first time can take half a minute)',
   ol_someMissing: 'Some data could not be fetched just now:',
   ol_inShort: '{year} in short',
@@ -91,6 +98,13 @@ export const enOutlook = {
 
 export const afOutlook: Record<keyof typeof enOutlook, string> = {
   ol_title: 'Vooruitskouings',
+  ol_viewRecent: 'Hierdie en volgende jaar',
+  ol_view10: '10 jaar',
+  ol_viewAll: 'Alle jare',
+  ol_view2y: '2 jaar',
+  ol_view1y: '1 jaar',
+  ol_view5y: '5 jaar',
+  ol_swipe: '← Swiep sywaarts om al die jare te sien →',
   ol_loading: 'Haal 45 jaar se weer, die El Niño-vooruitsig en wêreldpryse… (die eerste keer kan ’n halwe minuut neem)',
   ol_someMissing: 'Sommige data kon nou nie gehaal word nie:',
   ol_inShort: '{year} kortliks',

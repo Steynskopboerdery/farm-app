@@ -505,3 +505,9 @@ details.card[open] > summary::after { content: '▴'; }
 .chart-key i.band { background: rgba(235, 104, 52, .18); border: 1px solid rgba(235, 104, 52, .45); }
 .bullets { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .bullets li { line-height: 1.4; }
+.span-chips { margin-bottom: 4px; }
+.chart-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -4px; padding: 0 4px 4px; }
+.chart-scroll .chart-box { width: auto; }
+.scroll-chart { display: flex; align-items: stretch; }
+.scroll-axis { flex: none; width: 52px; }
+.scroll-chart .chart-scroll { flex: 1; min-width: 0; margin: 0; padding: 0 0 4px; }
