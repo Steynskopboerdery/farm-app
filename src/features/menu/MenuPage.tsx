@@ -7,6 +7,7 @@ const TILES: { to: string | null; label: DictKey; emoji: string; ownerOnly?: boo
   { to: '/team', label: 'teamTitle', emoji: '👷' },
   { to: '/chat', label: 'chatTitle', emoji: '💬' },
   { to: '/weather', label: 'weather', emoji: '⛅' },
+  { to: '/outlook', label: 'ol_title', emoji: '🔮' },
   { to: '/reports', label: 'menuReports', emoji: '📊', ownerOnly: true },
   { to: '/inventory', label: 'menuInventory', emoji: '📦' },
   { to: '/rain', label: 'rainTitle', emoji: '🌧️' },

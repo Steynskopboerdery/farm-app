@@ -103,6 +103,7 @@ Calculations live in `src/lib/calc/`, and each file has a test next to it. Run t
 | `headcount.ts` | Counted vs expected animals, missing animals, groups not counted lately |
 | `leave.ts` | Working days (SA public holidays, Easter, Sunday → Monday), leave balances (BCEA defaults) |
 | `activity.ts` | Turns the change history into "what this person did" per day |
+| `outlook.ts` | Predictions: dry / normal / wet season rain, trend, month normals, frost, autumn break, El Niño / La Niña local history, water-limited yield (French & Schultz) calibrated to the farm's harvests and rain gauge, price ranges, profit grid |
 | `exportData.ts` | SA tax year (1 Mar – end Feb), VAT summary (charged on invoices less paid on costs) |
 | `../outbox.ts` | Tells "no signal" apart from a real refusal, so offline saves are retried and refusals are shown |
 
@@ -246,3 +247,14 @@ supabase/
 - **Offline saving that survives closing the app**: rain, fuel, head counts, diary, ticking off tasks, map pins (without photo) and leave requests (without attachment)
   are kept on the phone without signal and sent by themselves later (new rows get their id on the phone, so nothing is saved twice).
   Anything the database refuses is shown at the top with "Try again" / "Throw away". Other forms still wait while the app stays open.
+
+### Predictions tab (done)
+- **Menu → Predictions**, with a tab for this year and next year. Starts with a plain "in short" list, then charts:
+  growing-season rain every year since 1981, rain month by month, El Niño / La Niña, expected yields, world prices in Rand, profit in dry / normal / wet years
+  at low / likely / high prices, rotation suggestions and the year's calendar. **Recorded values are blue, predictions orange with a pale orange likely-range band;**
+  every chart has a table view.
+- Data comes through the Supabase function `outlook`, cached in `outlook_cache`: NASA POWER daily weather for the farm's location (since 1981),
+  NOAA CPC Oceanic Niño Index and official ENSO probabilities, World Bank Pink Sheet monthly prices (rapeseed oil, wheat, maize, lamb, beef, DAP, urea, potash, crude),
+  and the Rand/Dollar rate from Frankfurter (ECB). All free; sources are named on the page.
+- Satellite rain is adjusted to the farm's own rain gauge once there are 2+ months to compare. Yields start at 60% of the water-limited potential and switch to the farm's own
+  figure as harvests are recorded. Prices: half the 5-year trend, with one typical yearly swing as the range. Everything is shown as ranges, never promises.

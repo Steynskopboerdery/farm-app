@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 
 import { afFarm, enFarm } from './i18n-farm'
 import { afTeam, enTeam } from './i18n-team'
+import { afOutlook, enOutlook } from './i18n-outlook'
 
 export type Lang = 'en' | 'af'
 
@@ -615,6 +616,7 @@ const en = {
   offlineWaiting: '{n} change(s) waiting to send. Keep the app open; they go as soon as there is signal.',
   ...enFarm,
   ...enTeam,
+  ...enOutlook,
 }
 
 export type DictKey = keyof typeof en
@@ -1220,6 +1222,7 @@ const af: Record<DictKey, string> = {
   offlineWaiting: '{n} verandering(e) wag om gestuur te word. Hou die app oop; dit gaan sodra daar sein is.',
   ...afFarm,
   ...afTeam,
+  ...afOutlook,
 }
 
 const dicts: Record<Lang, Record<DictKey, string>> = { en, af }
