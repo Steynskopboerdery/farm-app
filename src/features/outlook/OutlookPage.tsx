@@ -7,7 +7,7 @@ import { suggestedNextCrops } from '../../lib/calc/advice'
 import { todayIso } from '../../lib/calc/dates'
 import {
   achievedShare, autumnBreak, ensoAnalogs, ensoPhase, ensoTilt, fanFactors, gaugeFactor, GROWING, inRand, marginGrid, monthNormals,
-  priceOutlook, rainAtChances, rainByYear, rainStats, scaleRain, seasonSoFar, tercileOdds, WATER_USE, yieldScenarios,
+  priceOutlook, rainAtChances, widenRain, rainByYear, rainStats, scaleRain, seasonSoFar, tercileOdds, WATER_USE, yieldScenarios,
 } from '../../lib/calc/outlook'
 import { dailyRain } from '../../lib/calc/rain'
 import { useRain } from '../../lib/farmRecords'
@@ -116,7 +116,7 @@ export function OutlookPage() {
   const tiltF = (tilt ?? 100) / 100
   const yearRain = year === thisYear && current
     ? { dry: current.dry, normal: current.normal, wet: current.wet }
-    : stats ? { dry: Math.round(stats.dry * tiltF), normal: Math.round(stats.normal * tiltF), wet: Math.round(stats.wet * tiltF) } : null
+    : stats ? widenRain({ dry: Math.round(stats.dry * tiltF), normal: Math.round(stats.normal * tiltF), wet: Math.round(stats.wet * tiltF) }) : null
 
   // Crops: this year's plantings, or for next year the rotation suggestion per field.
   const { plantings = [], harvests = [] } = records.data ?? {}
@@ -163,7 +163,7 @@ export function OutlookPage() {
 
   // Rain reached in 9, 7, 5, 3 and 1 years in 10: this year = what fell plus the rest of the season, next year = history × outlook.
   const rainChances = !stats ? [] : year === thisYear && current
-    ? rainAtChances(seasonRows).map((c) => ({ chance: c.chance, mm: Math.round(current.soFar + ((current.normal - current.soFar) * c.mm) / stats.normal) }))
+    ? rainAtChances(seasonRows).map((c) => ({ chance: c.chance, mm: Math.max(current.soFar, Math.round(current.soFar + ((current.normal - current.soFar) * c.mm) / stats.normal)) }))
     : rainAtChances(seasonRows, tiltF)
   const odds = year > thisYear && enso && seasonRows.length ? tercileOdds(seasonRows, enso.oni, winterProb) : null
 
@@ -252,7 +252,7 @@ export function OutlookPage() {
     const savedData = saved?.data as { rain?: { dry: number; normal: number; wet: number }; yields?: Record<string, { dry: number; normal: number; wet: number }> } | undefined
     const before = seasonRows.filter((r) => r.year < y)
     const hind = before.length >= 10 ? rainStats(before) : null
-    const predRain = savedData?.rain ?? (hind ? { dry: hind.dry, normal: hind.normal, wet: hind.wet } : null)
+    const predRain = savedData?.rain ?? (hind ? widenRain({ dry: hind.dry, normal: hind.normal, wet: hind.wet }) : null)
     const crops = [...new Set(harvestsByYear.filter((r) => r.year === y).map((r) => r.crop))].map((c) => {
       const got = harvestsByYear.filter((r) => r.year === y && r.crop === c)
       const pred = savedData?.yields?.[c] ?? (predRain ? yieldScenarios(c, predRain, share.share) : null)

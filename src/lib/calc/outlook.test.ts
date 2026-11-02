@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   achievedShare, fanFactors, rainAtChances, tercileOdds, autumnBreak, ensoAnalogs, ensoPhase, ensoTilt, gaugeFactor, inRand, marginGrid, monthNormals, potentialYield,
-  priceOutlook, quantile, rainByYear, rainStats, seasonSoFar, slope, yieldScenarios, type YearClimate,
+  priceOutlook, widenRain, quantile, rainByYear, rainStats, seasonSoFar, slope, yieldScenarios, type YearClimate,
 } from './outlook'
 
 const year = (growingMonthMm: number, breakDate: string | null = '04-10', frostJuly = 0): YearClimate => ({
@@ -78,22 +78,26 @@ describe('yields', () => {
   it('this season: rain so far plus the usual rain still to come', () => {
     const normals = monthNormals({ 1: year(40), 2: year(60) })
     const current = Array(12).fill(0).map((_, m) => (m >= 3 && m <= 6 ? 50 : 0))
-    // April–July fell (200 mm); July is the current part month; Aug–Oct still to come at 44 / 50 / 56 mm a month
-    expect(seasonSoFar(current, 6, normals)).toEqual({ soFar: 200, dry: 332, normal: 350, wet: 368, finished: false })
+    // April–July fell (200 mm); July is the current part month; Aug–Oct still to come at 44 / 50 / 56 mm a month,
+    // with the dry and wet amounts spread 1,25 times (tested on past seasons)
+    expect(seasonSoFar(current, 6, normals)).toEqual({ soFar: 200, dry: 328, normal: 350, wet: 373, finished: false })
   })
 })
 
 describe('prices', () => {
   const months = (n: number, f: (i: number) => number): [string, number][] =>
     Array.from({ length: n }, (_, i) => [`${2016 + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, '0')}`, f(i)])
+  it('spreads dry and wet amounts around the normal', () => {
+    expect(widenRain({ dry: 200, normal: 250, wet: 320 })).toEqual({ dry: 188, normal: 250, wet: 338 })
+  })
   it('converts to Rand month by month', () => {
     expect(inRand([['2026-08', 100], ['2026-09', 200]], [['2026-09', 16.5]])).toEqual([['2026-09', 3300]])
   })
-  it('a steady 10% a year rise: last year +10%, trend +10%, likely about +5% (trend halved)', () => {
+  it('a steady 10% a year rise: last year +10%, trend +10%, likely today’s price (trend left out: tested on past prices)', () => {
     const o = priceOutlook(months(72, (i) => 1000 * Math.pow(1.1, i / 12)))!
     expect(o.changeLastYear).toBe(10)
     expect(o.trendPerYear).toBe(10)
-    expect(o.likely).toBe(1.05)
+    expect(o.likely).toBe(1)
     expect(o.low).toBeLessThanOrEqual(o.likely)
     expect(o.high).toBeGreaterThanOrEqual(o.likely)
   })
@@ -111,9 +115,10 @@ describe('chances', () => {
   const rows = Array.from({ length: 11 }, (_, i) => ({ year: 2000 + i, mm: 300 + i * 10 }))
   it('gives the rain reached in 9, 7, 5, 3 and 1 years in 10', () => {
     expect(rainAtChances(rows)).toEqual([
-      { chance: 90, mm: 310 }, { chance: 70, mm: 330 }, { chance: 50, mm: 350 }, { chance: 30, mm: 370 }, { chance: 10, mm: 390 },
+      { chance: 90, mm: 300 }, { chance: 70, mm: 325 }, { chance: 50, mm: 350 }, { chance: 30, mm: 375 }, { chance: 10, mm: 400 },
     ])
     expect(rainAtChances(rows, 0.5)[2].mm).toBe(175)
+    expect(rainAtChances(rows, 1, 1)[0].mm).toBe(310)
     expect(rainAtChances([])).toEqual([])
   })
   it('turns the El Niño outlook into dry / normal / wet odds that add to 100', () => {

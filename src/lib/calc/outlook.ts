@@ -41,6 +41,18 @@ export function rainByYear(years: Record<string, YearClimate>, months: number[] 
     .sort((a, b) => a.year - b.year)
 }
 
+/**
+ * Tested on this area's 1996–2025 seasons, each predicted only from the years before it: the plain 1-in-5 dry and
+ * wet amounts held 47% of seasons instead of 60%, and the misses were mostly dry years. Spreading the dry and wet
+ * amounts 1,25 times further from the median brings it to 60% (and "9 years in 10" from 73% to 87%).
+ */
+export const RAIN_SPREAD = 1.25
+
+/** Dry / normal / wet amounts spread out by RAIN_SPREAD around the normal, for predictions. */
+export function widenRain(r: { dry: number; normal: number; wet: number }, k = RAIN_SPREAD) {
+  return { dry: Math.max(0, r0(r.normal - (r.normal - r.dry) * k)), normal: r.normal, wet: r0(r.normal + (r.wet - r.normal) * k) }
+}
+
 /** Dry (1 in 5 driest), normal (median) and wet (1 in 5 wettest) amounts, and the long-term trend. */
 export function rainStats(rows: { year: number; mm: number }[]) {
   const mm = rows.map((r) => r.mm)
@@ -182,7 +194,8 @@ export function seasonSoFar(currentRain: number[], lastMonth: number, normals: R
       rest.wet += normals[m].rainWet ?? 0
     }
   }
-  return { soFar: r0(soFar), dry: r0(soFar + rest.dry), normal: r0(soFar + rest.normal), wet: r0(soFar + rest.wet), finished: lastMonth > GROWING[GROWING.length - 1] }
+  const w = widenRain(rest)
+  return { soFar: r0(soFar), dry: r0(soFar + w.dry), normal: r0(soFar + w.normal), wet: r0(soFar + w.wet), finished: lastMonth > GROWING[GROWING.length - 1] }
 }
 
 // Prices --------------------------------------------------------------------------------------------
@@ -194,9 +207,15 @@ export function inRand(points: [string, number][], fx: [string, number][]): [str
 }
 
 /**
- * Where a price may be in `months` months: trend of the last 5 years (halved, because prices tend to swing back),
- * and a band of one typical yearly move either side (about 2 years in 3 fall inside it).
+ * Tested on 2016–2026 world prices (7 series, every month as a starting point, 6 to 18 months ahead):
+ * following the 5-year trend missed by more than assuming today's price holds (12 months: 20,7% vs 19,8%),
+ * and a band of one typical yearly move held only 57% of outcomes, not the 2 in 3 it should. So the likely
+ * price is today's, and the band is widened by 1,3 (then 67–72% fall inside; the outer 9-in-10 band holds 86–89%).
  */
+export const PRICE_TREND_WEIGHT = 0
+export const PRICE_BAND = 1.3
+
+/** Where a price may be in `months` months: today's price, with a band of the usual yearly swing (about 2 years in 3 inside it). */
 export function priceOutlook(points: [string, number][], months = 12) {
   const pts = points.filter(([, v]) => v > 0)
   if (pts.length < 24) return null
@@ -209,8 +228,8 @@ export function priceOutlook(points: [string, number][], months = 12) {
   const mean = yearly.reduce((a, b) => a + b, 0) / yearly.length
   const vol = Math.sqrt(yearly.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(1, yearly.length - 1))
   const h = months / 12
-  const likely = Math.exp(0.5 * trendPerYear * h)
-  const spread = Math.exp(vol * Math.sqrt(h))
+  const likely = Math.exp(PRICE_TREND_WEIGHT * trendPerYear * h)
+  const spread = Math.exp(PRICE_BAND * vol * Math.sqrt(h))
   const yearAgo = pts[pts.length - 13]
   return {
     lastMonth: last[0],
@@ -259,9 +278,11 @@ export function scaleRain(years: Record<string, YearClimate>, factor: number): R
 export const CHANCES = [90, 70, 50, 30, 10]
 
 /** Growing-season rain reached in each of CHANCES' years-in-10, from history (scaled by `factor`). */
-export function rainAtChances(rows: { mm: number }[], factor = 1): { chance: number; mm: number }[] {
+export function rainAtChances(rows: { mm: number }[], factor = 1, spread = RAIN_SPREAD): { chance: number; mm: number }[] {
   const mm = rows.map((r) => r.mm)
-  return mm.length ? CHANCES.map((c) => ({ chance: c, mm: r0(quantile(mm, 1 - c / 100) * factor) })) : []
+  if (!mm.length) return []
+  const med = quantile(mm, 0.5)
+  return CHANCES.map((c) => ({ chance: c, mm: Math.max(0, r0((med + (quantile(mm, 1 - c / 100) - med) * spread) * factor)) }))
 }
 
 /**
