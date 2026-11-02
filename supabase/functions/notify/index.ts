@@ -3,12 +3,14 @@
 //   mode "leave_request"  : a worker asked for leave -> the owners         (called by the database)
 //   mode "leave_answer"   : leave approved / declined -> the worker        (called by the database)
 //   mode "task"           : a task was given to someone                    (called by the database)
-//   mode "daily"          : the morning summary at 07:30                   (called by pg_cron)
+//   mode "daily"          : the morning summary at 07:30, plus planting-rain, flowering frost/heat,
+//                          price-target and cheap-fertiliser alerts           (called by pg_cron)
 //   mode "test"           : a test notification to the logged-in person's own phones
 // Database calls carry the shared secret from Vault; "test" needs the person's login.
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import webpush from 'npm:web-push@3.6.7'
+import { floweringRisks, floweringWindows, plantingRain, priceHits, priceRank } from './alerts.ts'
 
 type Lang = 'en' | 'af'
 interface Note { title: string; body: string; url: string; tag: string }
@@ -34,6 +36,15 @@ const W = {
     taskTitle: '⏰ New task for you',
     testTitle: 'FarmPlans', testBody: 'Notifications work on this phone. ✓',
     morning: 'Good morning',
+    plantTitle: '🌱 Planting rain',
+    plantFell: (mm: number) => `${mm} mm in your gauge over the last 3 days: enough to plant.`,
+    plantComing: (mm: number) => `${mm} mm of rain forecast in the next 3 days: get ready to plant.`,
+    flowerTitle: '🌼 Crops flowering',
+    frost: (d: string, v: number, c: string) => `Frost risk ${d} (${v}°C) while ${c} flowers.`,
+    heat: (d: string, v: number, c: string) => `Heat ${d} (${v}°C) while ${c} flowers.`,
+    priceHit: (what: string, dir: string, target: string, now: string) => `${what} is ${dir} your target ${target} (now ${now}).`,
+    above: 'at or above', below: 'at or below',
+    fertCheap: (what: string) => `${what} is cheap compared with the last 5 years: a good time to buy.`,
   },
   af: {
     tasksDue: (n: number, list: string) => `${n} ${n === 1 ? 'taak' : 'take'} moet gedoen word: ${list}`,
@@ -52,6 +63,15 @@ const W = {
     taskTitle: '⏰ Nuwe taak vir jou',
     testTitle: 'FarmPlans', testBody: 'Kennisgewings werk op hierdie foon. ✓',
     morning: 'Goeie môre',
+    plantTitle: '🌱 Plantreën',
+    plantFell: (mm: number) => `${mm} mm in jou reënmeter oor die laaste 3 dae: genoeg om te plant.`,
+    plantComing: (mm: number) => `${mm} mm reën voorspel in die volgende 3 dae: maak gereed om te plant.`,
+    flowerTitle: '🌼 Gewasse blom',
+    frost: (d: string, v: number, c: string) => `Rypgevaar ${d} (${v}°C) terwyl ${c} blom.`,
+    heat: (d: string, v: number, c: string) => `Hitte ${d} (${v}°C) terwyl ${c} blom.`,
+    priceHit: (what: string, dir: string, target: string, now: string) => `${what} is ${dir} jou teiken ${target} (nou ${now}).`,
+    above: 'op of bo', below: 'op of onder',
+    fertCheap: (what: string) => `${what} is goedkoop teenoor die laaste 5 jaar: ’n goeie tyd om te koop.`,
   },
 }
 
@@ -138,11 +158,103 @@ async function onTask(id: string) {
   return send([t.assigned_to], (lang) => ({ title: W[lang].taskTitle, body: short(`${t.title}${t.due_date ? ` · ${t.due_date}` : ''}`), url: '/', tag: `task-${t.id}` }))
 }
 
+const SERIES_NAME: Record<string, { en: string; af: string; unit: string }> = {
+  rapeseedOil: { en: 'Canola (rapeseed oil)', af: 'Kanola (raapsaadolie)', unit: '/t' },
+  wheat: { en: 'Wheat', af: 'Koring', unit: '/t' },
+  maize: { en: 'Maize', af: 'Mielies', unit: '/t' },
+  lamb: { en: 'Lamb', af: 'Lam', unit: '/kg' },
+  beef: { en: 'Beef', af: 'Beesvleis', unit: '/kg' },
+  dap: { en: 'Fertiliser DAP', af: 'Kunsmis DAP', unit: '/t' },
+  urea: { en: 'Fertiliser urea', af: 'Kunsmis ureum', unit: '/t' },
+  potash: { en: 'Fertiliser potash', af: 'Kunsmis kaliumchloried', unit: '/t' },
+  crude: { en: 'Crude oil', af: 'Ru-olie', unit: '/t' },
+}
+const rand = (n: number) => `R${Math.round(n).toLocaleString('en-ZA').replace(/,/g, ' ')}`
+const dayMonth = (d: string) => `${Number(d.slice(8, 10))}/${Number(d.slice(5, 7))}`
+
+/** Daily minimum / maximum temperature and rain for the next days, from MET Norway (South African dates). */
+async function forecastDays(lat: number, lon: number) {
+  const res = await fetch(`https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat.toFixed(2)}&lon=${lon.toFixed(2)}`, {
+    headers: { 'User-Agent': 'FarmPlans/1.0 github.com/Steynskopboerdery/farm-app', Accept: 'application/json' },
+  })
+  if (!res.ok) throw new Error(`forecast ${res.status}`)
+  const body = await res.json() as { properties: { timeseries: { time: string; data: { instant: { details: { air_temperature?: number } }; next_1_hours?: { details?: { precipitation_amount?: number } }; next_6_hours?: { details?: { precipitation_amount?: number } } } }[] } }
+  const days = new Map<string, { date: string; min: number; max: number; rainMm: number; hourly: boolean }>()
+  let hourlyUntil = ''
+  for (const e of body.properties.timeseries) {
+    const date = new Date(Date.parse(e.time) + 2 * 3_600_000).toISOString().slice(0, 10)
+    const d = days.get(date) ?? { date, min: Infinity, max: -Infinity, rainMm: 0, hourly: false }
+    const temp = e.data.instant.details.air_temperature
+    if (temp != null) { d.min = Math.min(d.min, temp); d.max = Math.max(d.max, temp) }
+    const one = e.data.next_1_hours?.details?.precipitation_amount
+    if (one != null) { d.rainMm += one; hourlyUntil = e.time }
+    else if (e.time > hourlyUntil) { d.rainMm += e.data.next_6_hours?.details?.precipitation_amount ?? 0; hourlyUntil = new Date(Date.parse(e.time) + 6 * 3_600_000).toISOString() }
+    days.set(date, d)
+  }
+  return [...days.values()].filter((d) => Number.isFinite(d.min)).map((d) => ({ date: d.date, min: Math.round(d.min), max: Math.round(d.max), rainMm: Math.round(d.rainMm * 10) / 10 }))
+}
+
+/** True the first time a key is seen for a farm (so each automatic alert goes out once). */
+async function firstTime(farmId: string, key: string) {
+  const { error } = await admin.from('alert_log').insert({ farm_id: farmId, key })
+  return !error
+}
+
+/** Latest world prices in Rand per unit, from the Prediction tab's cache. */
+async function latestPrices() {
+  const { data } = await admin.from('outlook_cache').select('data').eq('key', 'markets').maybeSingle()
+  const m = data?.data as { series?: Record<string, { points: [string, number][] }>; fx?: [string, number][] } | undefined
+  const out = new Map<string, { month: string; price: number; rand: [string, number][] }>()
+  if (!m?.series || !m.fx) return out
+  const fx = new Map(m.fx)
+  for (const [key, s] of Object.entries(m.series)) {
+    const r = s.points.filter(([mo]) => fx.has(mo)).map(([mo, v]): [string, number] => [mo, v * fx.get(mo)!])
+    if (r.length) out.set(key, { month: r[r.length - 1][0], price: r[r.length - 1][1], rand: r })
+  }
+  return out
+}
+
+/** Planting rain and frost / heat at flowering: their own notifications to owners and field workers. */
+async function weatherAlerts(farm: { id: string; map_center_lat: number | null; map_center_lng: number | null }, people: string[], today: string) {
+  if (!people.length) return 0
+  const forecast = await forecastDays(farm.map_center_lat ?? -34.25, farm.map_center_lng ?? 20.25).catch((e) => { console.error(e); return null })
+  if (!forecast) return 0
+  let sent = 0
+  const year = today.slice(0, 4)
+
+  const { data: gauge } = await admin.from('rain_readings').select('date, mm, gauge').eq('farm_id', farm.id).is('deleted_at', null).gte('date', addDays(today, -4))
+  // Several gauges on one day: use the average, like the app.
+  const perDay = new Map<string, number[]>()
+  for (const r of gauge ?? []) perDay.set(r.date, [...(perDay.get(r.date) ?? []), Number(r.mm)])
+  const byDay = new Map([...perDay].map(([d, v]) => [d, v.reduce((a, b) => a + b, 0) / v.length]))
+  const p = plantingRain(byDay, forecast, today)
+  if (p.season && p.enoughFell && await firstTime(farm.id, `plant-fell-${year}`)) {
+    sent += await send(people, (lang) => ({ title: W[lang].plantTitle, body: W[lang].plantFell(p.fell), url: '/outlook', tag: `plant-${farm.id}` }))
+  } else if (p.season && p.enoughComing && await firstTime(farm.id, `plant-coming-${year}`)) {
+    sent += await send(people, (lang) => ({ title: W[lang].plantTitle, body: W[lang].plantComing(p.coming), url: '/outlook', tag: `plant-${farm.id}` }))
+  }
+
+  const { data: plantings } = await admin.from('plantings').select('crop, planting_date, field:fields!inner(name)').eq('farm_id', farm.id).is('deleted_at', null).gte('planting_date', `${year}-01-01`)
+  const windows = floweringWindows((plantings ?? []).map((x) => ({ crop: x.crop, planting_date: x.planting_date, field: (x.field as unknown as { name: string }).name })))
+  const risks = floweringRisks(windows, forecast.filter((d) => d.date > today && d.date <= addDays(today, 3)))
+  const fresh = []
+  for (const r of risks) if (await firstTime(farm.id, `flower-${r.date}-${r.kind}`)) fresh.push(r)
+  if (fresh.length) {
+    sent += await send(people, (lang) => ({
+      title: W[lang].flowerTitle,
+      body: fresh.map((r) => W[lang][r.kind](dayMonth(r.date), r.value, `${r.crops.join(', ')}${r.fields.length ? ` (${list(r.fields)})` : ''}`)).join('\n'),
+      url: '/outlook', tag: `flower-${farm.id}`,
+    }))
+  }
+  return sent
+}
+
 /** The morning summary: one notification per person per farm, listing what matters to them today. */
 async function daily() {
   const today = saToday()
   const monday = new Date(`${today}T12:00:00Z`).getUTCDay() === 1
-  const { data: farms } = await admin.from('farms').select('id, name').is('deleted_at', null)
+  const { data: farms } = await admin.from('farms').select('id, name, map_center_lat, map_center_lng').is('deleted_at', null)
+  const prices = await latestPrices()
   let sent = 0
   for (const farm of farms ?? []) {
     const team = await members(farm.id)
@@ -224,6 +336,24 @@ async function daily() {
       const { count: pins } = await admin.from('map_pins').select('id', { count: 'exact', head: true }).eq('farm_id', farm.id).is('deleted_at', null).is('resolved_at', null)
       if (pins) lines.push({ users: owners, text: (lang) => W[lang].pins(pins) })
     }
+
+    // Price targets reached and cheap fertiliser: once per monthly price, to owners.
+    const { data: targets } = await admin.from('price_alerts').select('id, series, direction, target, active').eq('farm_id', farm.id).is('deleted_at', null)
+    const latest = new Map([...prices].map(([k, v]) => [k, v.price]))
+    for (const h of priceHits((targets ?? []).map((x) => ({ ...x, target: Number(x.target) })), latest)) {
+      const month = prices.get(h.series)!.month
+      if (!await firstTime(farm.id, `price-${h.id}-${month}`)) continue
+      const name = SERIES_NAME[h.series]
+      lines.push({ users: owners, text: (lang) => W[lang].priceHit(name?.[lang] ?? h.series, h.direction === 'above' ? W[lang].above : W[lang].below, rand(h.target) + (name?.unit ?? ''), rand(h.price) + (name?.unit ?? '')) })
+    }
+    for (const key of ['dap', 'urea', 'potash']) {
+      const s = prices.get(key)
+      const r = s ? priceRank(s.rand) : null
+      if (!s || !r?.cheap || !await firstTime(farm.id, `fert-${key}-${s.month}`)) continue
+      lines.push({ users: owners, text: (lang) => W[lang].fertCheap(SERIES_NAME[key][lang]) })
+    }
+
+    sent += await weatherAlerts(farm, [...new Set([...owners, ...fieldPeople])], today)
 
     for (const m of team) {
       const mine = lines.filter((l) => l.users.includes(m.user_id))

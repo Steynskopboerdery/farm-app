@@ -5,14 +5,17 @@ import { rainBetween } from '../../lib/calc/rain'
 import { useHeadCounts, usePins, useRain, useVehicles } from '../../lib/farmRecords'
 import { formatNumber } from '../../lib/format'
 import { useI18n } from '../../lib/i18n'
-import { useGroups } from '../../lib/queries'
+import { useCurrentPlantings, useFields, useGroups } from '../../lib/queries'
+import { useWeather } from '../../lib/useWeather'
+import { dailyRain } from '../../lib/calc/rain'
+import { floweringRisks, floweringWindows, plantingRain } from '../../lib/calc/alerts'
 import { vehicleSummary } from '../vehicles/VehiclesPage'
 import { useLeave, useUnread } from '../../lib/team'
 import { useFarm } from '../../farm/FarmProvider'
 
 /** Home screen: rain so far, animals missing at the last count, services due, open map pins. */
 export function FarmAlerts() {
-  const { t, lang } = useI18n()
+  const { t, w, lang } = useI18n()
   const rain = useRain()
   const counts = useHeadCounts()
   const groups = useGroups()
@@ -28,6 +31,16 @@ export function FarmAlerts() {
   const { isOwner } = useFarm()
   const leave = useLeave()
   const pendingLeave = isOwner ? (leave.data ?? []).filter((l) => l.status === 'pending').length : 0
+  // Planting rain (March–June) and frost / heat while crops flower, from the gauge and the forecast.
+  const weather = useWeather()
+  const current = useCurrentPlantings()
+  const fields = useFields()
+  const days = weather.data?.days ?? []
+  const planting = days.length ? plantingRain(dailyRain(readings), days, today) : null
+  const fieldName = new Map((fields.data ?? []).map((f) => [f.id, f.name]))
+  const flowering = floweringRisks(floweringWindows([...(current.data?.values() ?? [])]
+    .filter((p) => p.planting_date?.startsWith(today.slice(0, 4)))
+    .map((p) => ({ crop: p.crop, planting_date: p.planting_date, field: fieldName.get(p.field_id) }))), days.slice(0, 7))
 
   return (
     <>
@@ -53,6 +66,19 @@ export function FarmAlerts() {
             <div className="small muted">{t('rainLast7')}: {formatNumber(rainBetween(readings, addDays(today, -6), today), 1, lang)} mm</div>
           </div>
           <span className="chev">›</span>
+        </Link>
+      )}
+      {planting?.season && (planting.enoughFell || planting.enoughComing) && (
+        <Link to="/outlook" className="card alert-link">
+          <span className="kind-emoji" aria-hidden="true">🌱</span>
+          <div className="grow"><strong>{t(planting.enoughFell ? 'pl_ready' : 'pl_coming', { mm: `${planting.mm} mm`, days: planting.days })}</strong></div>
+          <span className="chev">›</span>
+        </Link>
+      )}
+      {flowering.length > 0 && (
+        <Link to="/outlook" className="warning">
+          <strong>🌼 {t('fl_title')}</strong>
+          {flowering.map((r) => <span key={r.date + r.kind}>{r.kind === 'frost' ? '❄️' : '🔥'} {r.date.slice(8, 10)}/{r.date.slice(5, 7)}: {t(r.kind === 'frost' ? 'fl_frost' : 'fl_heat', { v: formatNumber(r.value, 0, lang), crops: r.crops.map(w).join(', ') })}{r.fields.length ? ` (${r.fields.join(', ')})` : ''}</span>)}
         </Link>
       )}
       {missing.length > 0 && (

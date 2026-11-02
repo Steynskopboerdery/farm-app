@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ErrorText, Loading } from '../../components/ui'
-import { useFarm } from '../../farm/FarmProvider'
+import { useFarm, useFarmId } from '../../farm/FarmProvider'
 import { suggestedNextCrops } from '../../lib/calc/advice'
 import { todayIso } from '../../lib/calc/dates'
 import {
@@ -12,8 +13,14 @@ import { dailyRain } from '../../lib/calc/rain'
 import { useRain } from '../../lib/farmRecords'
 import { formatDateShort, formatNumber } from '../../lib/format'
 import { useI18n, type DictKey } from '../../lib/i18n'
-import { useAllCropRecords, usePlanningEstimates } from '../../lib/inventory'
-import { useOpenTasks, useSeasons, useFields } from '../../lib/queries'
+import { useAllCropRecords, useCosts, usePlanningEstimates } from '../../lib/inventory'
+import { useFarmSettings, useGroups, useOpenTasks, useSeasons, useFields } from '../../lib/queries'
+import { useWeather } from '../../lib/useWeather'
+import { useBudgets, usePaymentsReceived, usePredictionSnapshots } from '../../lib/budget'
+import { actuals } from '../../lib/calc/budget'
+import { priceRank } from '../../lib/calc/alerts'
+import { supabase } from '../../lib/supabase'
+import { CropMixCard, DEFAULT_ECON, FloweringCard, LivestockOutlookCard, PlantingRainCard, PriceAlertsCard, ScorecardCard, type CropEcon, type ScoreYear } from './OutlookPlanning'
 import { ok, useOutlook } from '../../lib/useOutlook'
 import { useLivestockCalendar } from '../livestock/LivestockCalendar'
 import { ChartCard, RecordedPredictedBars, RecordedPredictedLine, ScrollingBars, type BarRow, type LineRow } from './OutlookCharts'
@@ -49,6 +56,26 @@ export function OutlookPage() {
   const estimates = usePlanningEstimates()
   const calendar = useLivestockCalendar()
   const tasks = useOpenTasks()
+  const weather = useWeather()
+  const groups = useGroups()
+  const settings = useFarmSettings(isOwner)
+  const snapshots = usePredictionSnapshots(isOwner)
+  const budgets = useBudgets(isOwner)
+  const payments = usePaymentsReceived(isOwner)
+  const costs = useCosts(isOwner)
+  const farmId = useFarmId()
+  const qc = useQueryClient()
+
+  // Save what the tab predicts, once a month per year, so the scorecard can check it after the season.
+  const snapshot = useRef<{ year: number; data: object } | null>(null)
+  useEffect(() => {
+    const s = snapshot.current
+    if (!isOwner || !s || !snapshots.data) return
+    const month = todayIso().slice(0, 7)
+    if (snapshots.data.some((x) => x.year === s.year && x.made_month === month)) return
+    supabase.from('prediction_snapshots').upsert({ farm_id: farmId, year: s.year, made_month: month, data: s.data as never }, { ignoreDuplicates: true })
+      .then(({ error }) => { if (!error) qc.invalidateQueries({ queryKey: ['prediction_snapshots'] }) })
+  })
 
   if (outlook.isLoading) return <div className="page stack"><h1>🔮 {t('ol_title')}</h1><p className="muted">{t('ol_loading')}</p><Loading /></div>
   const climate = ok(outlook.data?.climate)
@@ -183,6 +210,73 @@ export function OutlookPage() {
     }
   }
 
+  // What this tab predicts for the chosen year, saved monthly for the scorecard.
+  if (yearRain && cropList.length) {
+    snapshot.current = {
+      year,
+      data: {
+        rain: yearRain, share: share.share,
+        yields: Object.fromEntries(cropList.map((c) => [c, yieldScenarios(c, yearRain, share.share)])),
+        prices: Object.fromEntries(cropList.map((c) => [c, priceFor(c)]).filter(([, p]) => p)),
+      },
+    }
+  }
+
+  // Gauge rain per day and this season's plantings, for the planting-rain and flowering cards.
+  const gaugeByDay = dailyRain(rainLog.data ?? [])
+  const fieldName = new Map((fields.data ?? []).map((f) => [f.id, f.name]))
+  const seasonPlantings = plantings.filter((p) => seasonYear.get(p.season_id) === thisYear).map((p) => ({ crop: p.crop, planting_date: p.planting_date, field: fieldName.get(p.field_id) }))
+  const forecastDays = weather.data?.days ?? []
+
+  // What-if crop mix: start from this year's plantings (or next year's suggestions), with the farm's own prices where it has them.
+  const startHa: Record<string, number> = {}
+  for (const p of fieldPlan) startHa[p.crop] = (startHa[p.crop] ?? 0) + Number(p.ha ?? 0)
+  const econ: CropEcon[] = Object.keys(WATER_USE).map((c) => {
+    const p = priceFor(c)
+    const e = est.find((x) => x.kind === 'crop' && x.name === c)
+    const d = DEFAULT_ECON[c]
+    return { crop: c, price: p ? { low: p.low, likely: p.likely, high: p.high } : { low: d.price * 0.85, likely: d.price, high: d.price * 1.15 }, cost: Number(e?.input_cost_per_ha ?? d.cost), own: !!e }
+  })
+
+  // Scorecard: for finished seasons, what was predicted against what happened.
+  const scoreYears: ScoreYear[] = []
+  const harvestsByYear = harvests.map((h) => {
+    const p = plantings.find((x) => x.field_id === h.field_id && x.season_id === h.season_id)
+    const y = h.season_id ? seasonYear.get(h.season_id) : undefined
+    return p && y && h.yield_per_ha ? { crop: p.crop, year: y, tPerHa: Number(h.yield_per_ha) } : null
+  }).filter((x): x is { crop: string; year: number; tPerHa: number } => !!x)
+  const seasonDone = Number(today.slice(5, 7)) >= 11
+  for (let y = thisYear - 3; y <= (seasonDone ? thisYear : thisYear - 1); y++) {
+    const actualRain = seasonRows.find((r) => r.year === y)?.mm ?? (y === thisYear && current ? current.soFar : undefined)
+    const saved = (snapshots.data ?? []).filter((x) => x.year === y && x.made_month < `${y}-05`).sort((a, b) => a.made_month.localeCompare(b.made_month))[0]
+    const savedData = saved?.data as { rain?: { dry: number; normal: number; wet: number }; yields?: Record<string, { dry: number; normal: number; wet: number }> } | undefined
+    const before = seasonRows.filter((r) => r.year < y)
+    const hind = before.length >= 10 ? rainStats(before) : null
+    const predRain = savedData?.rain ?? (hind ? { dry: hind.dry, normal: hind.normal, wet: hind.wet } : null)
+    const crops = [...new Set(harvestsByYear.filter((r) => r.year === y).map((r) => r.crop))].map((c) => {
+      const got = harvestsByYear.filter((r) => r.year === y && r.crop === c)
+      const pred = savedData?.yields?.[c] ?? (predRain ? yieldScenarios(c, predRain, share.share) : null)
+      return pred && pred.dry != null ? { crop: c, pred: pred as { dry: number; normal: number; wet: number }, actual: got.reduce((a, r) => a + r.tPerHa, 0) / got.length } : null
+    }).filter((x): x is NonNullable<typeof x> => !!x)
+    const budgetLines = (budgets.data?.lines ?? []).filter((l) => l.year === y)
+    let money: ScoreYear['money']
+    if (isOwner && budgetLines.length && y < thisYear) {
+      const a = actuals(y, {
+        costs: (costs.data ?? []).map((c) => ({ date: c.date, category: c.category, amount: Number(c.amount) })),
+        ops: (records.data?.operations ?? []).map((o) => ({ date: o.date, cost: o.cost })),
+        plantings, payments: (payments.data ?? []).map((p) => ({ date: p.date, amount: Number(p.amount) })),
+      })
+      const sum = (xs: number[]) => xs.reduce((m, v) => m + v, 0)
+      money = { plan: budgetLines.reduce((m, l) => m + (l.kind === 'income' ? 1 : -1) * Number(l.amount), 0), actual: sum(a.income) - sum(a.expense) }
+    }
+    if ((predRain && actualRain != null) || crops.length) {
+      scoreYears.push({ year: y, source: savedData ? 'saved' : 'worked-out', madeMonth: saved?.made_month, rain: predRain && actualRain != null ? { pred: predRain, actual: actualRain } : undefined, crops, money })
+    }
+  }
+
+  // Fertiliser: cheap or dear compared with the last 5 years.
+  const fertNotes = priceRows.filter((p) => ['dap', 'urea', 'potash'].includes(p.key)).map((p) => ({ p, r: priceRank(p.rand) })).filter((x) => x.r && (x.r.cheap || x.r.dear))
+
   const err = (p: unknown) => (p && typeof p === 'object' && 'error' in p ? String((p as { error: string }).error) : null)
   const sourceErrors = [err(outlook.data?.climate), err(outlook.data?.enso), err(outlook.data?.markets)].filter(Boolean)
 
@@ -201,6 +295,8 @@ export function OutlookPage() {
       {sourceErrors.length > 0 && <p className="warning small">{t('ol_someMissing')} {sourceErrors.join(' · ')}</p>}
 
       {big.length > 0 && <BigNumbers cards={big} />}
+      {year === thisYear && <PlantingRainCard today={today} gaugeByDay={gaugeByDay} forecast={forecastDays} usual={breakDates ? md(breakDates.usual) : undefined} />}
+      {year === thisYear && <FloweringCard plantings={seasonPlantings} forecast={forecastDays} today={today} />}
 
       {/* In short */}
       <section className="card stack">
@@ -222,6 +318,9 @@ export function OutlookPage() {
           })}
           {isOwner && priceRows.filter((p) => p.crop).map((p) => (
             <li key={p.key}>💰 {t('ol_sumPrice', { what: t(p.label), trend: pct(p.o.trendPerYear), last: pct(p.o.changeLastYear ?? 0) })}</li>
+          ))}
+          {isOwner && fertNotes.map(({ p, r }) => (
+            <li key={`fert-${p.key}`}>{r!.cheap ? '🟢' : '🔴'} {t(r!.cheap ? 'pa_fertCheap' : 'pa_fertDear', { what: t(p.label) })}</li>
           ))}
           {year > thisYear && breakDates && <li>🌱 {t('ol_sumBreak', { usual: md(breakDates.usual), early: md(breakDates.early), late: md(breakDates.late) })}</li>}
           {stats && <li>📈 {stats.perDecade >= 0 ? t('ol_sumTrendUp', { n: mm(Math.abs(stats.perDecade)) }) : t('ol_sumTrendDown', { n: mm(Math.abs(stats.perDecade)) })}</li>}
@@ -361,6 +460,9 @@ export function OutlookPage() {
         </section>
       )}
 
+      {/* Livestock */}
+      {yearRain && <LivestockOutlookCard year={year} groups={groups.data ?? []} estimates={est} settings={settings.data} rain={yearRain} isOwner={isOwner} />}
+
       {/* Markets (owners) */}
       {isOwner && priceRows.length > 0 && (
         <ChartCard title={t('ol_marketsTitle')}
@@ -401,6 +503,8 @@ export function OutlookPage() {
         />
       )}
 
+      {isOwner && priceRows.length > 0 && <PriceAlertsCard series={priceRows.map((p) => ({ key: p.key, label: t(p.label), unit: `/${p.per}`, now: p.o.last }))} />}
+
       {/* Profit (owners) */}
       {isOwner && yearRain && cropList.map((c) => {
         const price = priceFor(c)
@@ -422,6 +526,12 @@ export function OutlookPage() {
           />
         )
       })}
+
+      {/* What if: a different crop mix */}
+      {isOwner && yearRain && <CropMixCard key={`${year}-${JSON.stringify(startHa)}`} year={year} rain={yearRain} share={share.share} econ={econ} startHa={startHa} />}
+
+      {/* How earlier predictions did */}
+      {scoreYears.length > 0 && <ScorecardCard years={scoreYears} />}
 
       {/* Calendar */}
       {(cal.length > 0 || yearTasks.length > 0 || (year > thisYear && breakDates)) && (

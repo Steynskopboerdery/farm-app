@@ -554,3 +554,28 @@ details.card[open] > summary::after { content: '▴'; }
 .build-up-sum { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; font-size: .92rem; margin-top: 6px; }
 .fan-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
 .fan-head .fan-to { margin-left: auto; font-size: .92rem; }
+
+/* Budget */
+.year-step { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.year-step strong { font-size: 1.5rem; }
+.label-text { display: block; font-weight: 700; margin-bottom: 6px; }
+.row-between { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.month-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
+.month-grid .chip { padding: 0 4px; min-height: 42px; }
+.budget-bars { display: flex; flex-direction: column; gap: 12px; }
+.budget-bar .track { height: 10px; border-radius: 999px; background: var(--track); overflow: hidden; margin-top: 4px; }
+.budget-bar .track div { height: 100%; background: #2a78d6; border-radius: 999px; }
+.budget-bar .track div.over { background: #c4511f; }
+.list .link-row.plain-btn { width: 100%; text-align: left; font: inherit; color: inherit; }
+
+/* Planting rain, flowering, crop mix */
+.plant-card.ready, .plant-card.coming { border: 2px solid #1f7a3f; }
+.plant-status { font-weight: 750; font-size: 1.05rem; }
+.plant-card.ready .plant-status, .plant-card.coming .plant-status { color: #1f7a3f; }
+.risk-card { border: 2px solid #f2b8bd; }
+a.warning { text-decoration: none; }
+.mix-rows { display: flex; flex-direction: column; gap: 10px; }
+.mix-row input[type=range] { width: 100%; accent-color: #eb6834; height: 32px; }
+.small-input { width: 92px; min-height: 40px; text-align: right; }
+details summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+.list .link-row.plain-btn { background: transparent; border: 0; padding: 8px 0; cursor: pointer; }

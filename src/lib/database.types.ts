@@ -14,6 +14,32 @@ export type Database = {
   }
   public: {
     Tables: {
+      alert_log: {
+        Row: {
+          farm_id: string
+          key: string
+          sent_at: string
+        }
+        Insert: {
+          farm_id: string
+          key: string
+          sent_at?: string
+        }
+        Update: {
+          farm_id?: string
+          key?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_log_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       animal_events: {
         Row: {
           animal_id: string | null
@@ -272,6 +298,106 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "livestock_groups"
             referencedColumns: ["farm_id", "id"]
+          },
+        ]
+      }
+      budget_lines: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          farm_id: string
+          id: string
+          kind: string
+          label: string
+          months: number[]
+          notes: string | null
+          sort: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          amount: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          farm_id: string
+          id?: string
+          kind: string
+          label: string
+          months?: number[]
+          notes?: string | null
+          sort?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          farm_id?: string
+          id?: string
+          kind?: string
+          label?: string
+          months?: number[]
+          notes?: string | null
+          sort?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_lines_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      budget_years: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          farm_id: string
+          notes: string | null
+          opening_balance: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          farm_id: string
+          notes?: string | null
+          opening_balance?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          farm_id?: string
+          notes?: string | null
+          opening_balance?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_years_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -609,6 +735,8 @@ export type Database = {
           deleted_at: string | null
           email: string | null
           farm_id: string
+          grazing_ha: number | null
+          ha_per_lsu: number | null
           invoice_footer: string | null
           invoice_prefix: string
           legal_name: string | null
@@ -632,6 +760,8 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           farm_id: string
+          grazing_ha?: number | null
+          ha_per_lsu?: number | null
           invoice_footer?: string | null
           invoice_prefix?: string
           legal_name?: string | null
@@ -655,6 +785,8 @@ export type Database = {
           deleted_at?: string | null
           email?: string | null
           farm_id?: string
+          grazing_ha?: number | null
+          ha_per_lsu?: number | null
           invoice_footer?: string | null
           invoice_prefix?: string
           legal_name?: string | null
@@ -1523,6 +1655,24 @@ export type Database = {
           },
         ]
       }
+      outlook_cache: {
+        Row: {
+          data: Json
+          fetched_at: string
+          key: string
+        }
+        Insert: {
+          data: Json
+          fetched_at?: string
+          key: string
+        }
+        Update: {
+          data?: Json
+          fetched_at?: string
+          key?: string
+        }
+        Relationships: []
+      }
       pasture_tests: {
         Row: {
           calcium_pct: number | null
@@ -1656,8 +1806,12 @@ export type Database = {
           kind: string
           name: string
           notes: string | null
+          price_per_head: number | null
           price_per_t: number | null
           updated_at: string
+          weaning_pct: number | null
+          wool_kg_per_head: number | null
+          wool_price_per_kg: number | null
           yield_t_per_ha: number | null
         }
         Insert: {
@@ -1672,8 +1826,12 @@ export type Database = {
           kind: string
           name: string
           notes?: string | null
+          price_per_head?: number | null
           price_per_t?: number | null
           updated_at?: string
+          weaning_pct?: number | null
+          wool_kg_per_head?: number | null
+          wool_price_per_kg?: number | null
           yield_t_per_ha?: number | null
         }
         Update: {
@@ -1688,8 +1846,12 @@ export type Database = {
           kind?: string
           name?: string
           notes?: string | null
+          price_per_head?: number | null
           price_per_t?: number | null
           updated_at?: string
+          weaning_pct?: number | null
+          wool_kg_per_head?: number | null
+          wool_price_per_kg?: number | null
           yield_t_per_ha?: number | null
         }
         Relationships: [
@@ -1775,6 +1937,88 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "seasons"
             referencedColumns: ["farm_id", "id"]
+          },
+        ]
+      }
+      prediction_snapshots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: Json
+          farm_id: string
+          made_month: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data: Json
+          farm_id: string
+          made_month: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: Json
+          farm_id?: string
+          made_month?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prediction_snapshots_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_alerts: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          direction: string
+          farm_id: string
+          id: string
+          series: string
+          target: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          direction: string
+          farm_id: string
+          id?: string
+          series: string
+          target: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          direction?: string
+          farm_id?: string
+          id?: string
+          series?: string
+          target?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_alerts_farm_id_fkey"
+            columns: ["farm_id"]
+            isOneToOne: false
+            referencedRelation: "farms"
+            referencedColumns: ["id"]
           },
         ]
       }

@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { afFarm, enFarm } from './i18n-farm'
 import { afTeam, enTeam } from './i18n-team'
 import { afOutlook, enOutlook } from './i18n-outlook'
+import { afBudget, enBudget } from './i18n-budget'
 
 export type Lang = 'en' | 'af'
 
@@ -617,6 +618,7 @@ const en = {
   ...enFarm,
   ...enTeam,
   ...enOutlook,
+  ...enBudget,
 }
 
 export type DictKey = keyof typeof en
@@ -1223,6 +1225,7 @@ const af: Record<DictKey, string> = {
   ...afFarm,
   ...afTeam,
   ...afOutlook,
+  ...afBudget,
 }
 
 const dicts: Record<Lang, Record<DictKey, string>> = { en, af }
