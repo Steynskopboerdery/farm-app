@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
 import { useFarm } from '../../farm/FarmProvider'
 import { useI18n, type DictKey } from '../../lib/i18n'
+import { useAuth } from '../../auth/AuthProvider'
+import { SignOutButton } from '../../components/SignOutButton'
 
 const TILES: { to: string | null; label: DictKey; emoji: string; ownerOnly?: boolean; phase?: number }[] = [
   { to: '/sales', label: 'menuSales', emoji: '🧾', ownerOnly: true },
@@ -22,6 +24,7 @@ const TILES: { to: string | null; label: DictKey; emoji: string; ownerOnly?: boo
 export function MenuPage() {
   const { t } = useI18n()
   const { isOwner } = useFarm()
+  const { session } = useAuth()
   return (
     <div className="page stack">
       <h1>{t('menu')}</h1>
@@ -39,6 +42,10 @@ export function MenuPage() {
           </div>
         ))}
       </div>
+      <section className="card row account-row">
+        <span className="grow"><span className="small muted">{t('loggedInAs')}</span><br /><strong>{session?.user.email}</strong></span>
+        <SignOutButton className="btn small" />
+      </section>
     </div>
   )
 }

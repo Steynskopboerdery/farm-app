@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { SignOutButton } from '../../components/SignOutButton'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
@@ -23,6 +24,10 @@ export function SettingsPage() {
     <div className="page stack">
       <Link to="/menu" className="back">‹ {t('menu')}</Link>
       <h1>{t('settingsTitle')}</h1>
+      <section className="card row account-row">
+        <span className="grow"><span className="small muted">{t('loggedInAs')}</span><br /><strong>{session?.user.email}</strong></span>
+        <SignOutButton className="btn small" />
+      </section>
       <Section title={t('language')}><LanguageSwitch /></Section>
       <NotificationsSection />
       {!isOwner && !previewingWorker && <p className="notice">{t('workerNote')}</p>}
@@ -49,7 +54,7 @@ export function SettingsPage() {
       <PasswordSection />
       <section className="card stack">
         <p className="muted">{session?.user.email}</p>
-        <button className="btn" onClick={() => supabase.auth.signOut()}>{t('signOut')}</button>
+        <SignOutButton />
       </section>
       <VersionLabel />
     </div>

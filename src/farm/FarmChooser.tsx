@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { SignOutButton } from '../components/SignOutButton'
 import { useNavigate } from 'react-router-dom'
 import { Logo } from '../components/Logo'
 import { ErrorText } from '../components/ui'
@@ -75,7 +76,7 @@ export function FarmChooser({ inApp = false }: { inApp?: boolean }) {
         ) : (
           <button className="btn add-farm" onClick={() => setAdding(true)}>+ {t('addFarm')}</button>
         )}
-        {!inApp && <button className="btn ghost" onClick={() => supabase.auth.signOut()}>{t('signOut')}</button>}
+        {!inApp && <SignOutButton className="btn ghost" />}
       </div>
     </div>
   )

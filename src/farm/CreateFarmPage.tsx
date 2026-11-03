@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { SignOutButton } from '../components/SignOutButton'
 import { useI18n } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { useFarm } from './FarmProvider'
@@ -34,7 +35,7 @@ export function CreateFarmPage() {
         <label>{t('farmLocation')}<input value={location} onChange={(e) => setLocation(e.target.value)} /></label>
         <button className="btn primary" disabled={busy}>{busy ? t('saving') : t('createFarm')}</button>
         {error && <p className="error">{error}</p>}
-        <button type="button" className="btn" onClick={() => supabase.auth.signOut()}>{t('signOut')}</button>
+        <SignOutButton />
       </form>
     </div>
   )

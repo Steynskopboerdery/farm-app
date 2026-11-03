@@ -124,3 +124,14 @@ export function startOutbox() {
   window.setInterval(kick, 30_000)
   kick()
 }
+
+/** Before someone logs out: send what can be sent, and say how many saves are still waiting. */
+export async function pendingBeforeSignOut(): Promise<number> {
+  await flush().catch(() => 0)
+  return load().length
+}
+
+/** Throw away everything waiting (when logging out, so the next person on this phone doesn't send it as theirs). */
+export function discardAll() {
+  store([])
+}
