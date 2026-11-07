@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { GettingStarted } from './GettingStarted'
 import { Link } from 'react-router-dom'
 import { ErrorText, Loading, Section } from '../../components/ui'
 import { useFarm } from '../../farm/FarmProvider'
@@ -105,6 +106,7 @@ export function DashboardPage() {
       </HeroPhoto>
 
       {hasSample && <p className="notice">{t('sampleBanner')}</p>}
+      <GettingStarted />
       <ErrorText error={fields.error} />
 
       <div className="stats">
