@@ -820,6 +820,7 @@ export type Database = {
           map_center_lng: number | null
           map_zoom: number | null
           name: string
+          setup_completed_at: string | null
           total_hectares: number | null
           updated_at: string
         }
@@ -834,6 +835,7 @@ export type Database = {
           map_center_lng?: number | null
           map_zoom?: number | null
           name: string
+          setup_completed_at?: string | null
           total_hectares?: number | null
           updated_at?: string
         }
@@ -848,6 +850,7 @@ export type Database = {
           map_center_lng?: number | null
           map_zoom?: number | null
           name?: string
+          setup_completed_at?: string | null
           total_hectares?: number | null
           updated_at?: string
         }

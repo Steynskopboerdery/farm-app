@@ -44,7 +44,7 @@ const MapPage = lazy(() => import('./features/map/MapPage').then((m) => ({ defau
 
 export default function App() {
   const { session, loading } = useAuth()
-  const { farm, farms, needsChoice, loading: farmLoading, error, refresh } = useFarm()
+  const { farm, farms, needsChoice, loading: farmLoading, error, refresh, realRole } = useFarm()
   // Welcome screen for about 2 seconds each time the app opens.
   const [welcomed, setWelcomed] = useState(false)
   useEffect(() => {
@@ -65,6 +65,8 @@ export default function App() {
   }
   if (farms.length === 0) return <CreateFarmPage />
   if (needsChoice || !farm) return <BrowserRouter><FarmChooser /></BrowserRouter>
+  // A farm made ready for its owners but not set up yet: the first owner to log in sets it up.
+  if (!farm.setup_completed_at && realRole === 'owner') return <CreateFarmPage existing={farm} />
 
   return (
     <BrowserRouter>

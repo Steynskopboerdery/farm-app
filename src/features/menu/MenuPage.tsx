@@ -3,6 +3,8 @@ import { useFarm, type Area } from '../../farm/FarmProvider'
 import { useI18n, type DictKey } from '../../lib/i18n'
 import { useAuth } from '../../auth/AuthProvider'
 import { SignOutButton } from '../../components/SignOutButton'
+import { WelcomeTour } from '../../components/WelcomeTour'
+import { useState } from 'react'
 
 const TILES: { to: string | null; label: DictKey; emoji: string; ownerOnly?: boolean; phase?: number; area?: Area }[] = [
   { to: '/sales', label: 'menuSales', emoji: '🧾', ownerOnly: true },
@@ -26,6 +28,7 @@ export function MenuPage() {
   const { isOwner, sees, realRole, previewingWorker, setPreviewWorker } = useFarm()
   const { session } = useAuth()
   const navigate = useNavigate()
+  const [tour, setTour] = useState(false)
   return (
     <div className="page stack">
       <h1>{t('menu')}</h1>
@@ -47,6 +50,8 @@ export function MenuPage() {
         <span className="grow"><span className="small muted">{t('loggedInAs')}</span><br /><strong>{session?.user.email}</strong></span>
         <SignOutButton className="btn small" />
       </section>
+      <button className="btn" onClick={() => setTour(true)}>❓ {t('tourAgain')}</button>
+      {tour && <WelcomeTour onClose={() => setTour(false)} />}
       {realRole === 'owner' && (
         previewingWorker
           ? <button className="btn lime" onClick={() => setPreviewWorker(false)}>{t('backToOwner')}</button>

@@ -5,6 +5,7 @@ import { AREA_OF_PATH, useFarm } from '../farm/FarmProvider'
 import { useMessagesLive, useUnread } from '../lib/team'
 import { useI18n } from '../lib/i18n'
 import { QuickAddSheet } from './QuickAddSheet'
+import { useTourNeeded, WelcomeTour } from './WelcomeTour'
 import { OutboxBar } from './OutboxBar'
 import { useOnline } from './useOnline'
 
@@ -38,6 +39,8 @@ export function Layout() {
   const waiting = useMutationState({ filters: { status: 'pending' }, select: (m) => m.state.isPaused }).filter(Boolean).length
   const { pathname } = useLocation()
   const [adding, setAdding] = useState(false)
+  const tourNeeded = useTourNeeded()
+  const [tourClosed, setTourClosed] = useState(false)
   // The home screen has its own green header.
   const showTopbar = pathname !== '/'
   // Pages the owner has hidden for this worker.
@@ -86,6 +89,7 @@ export function Layout() {
         {sees('animals') ? <NavLink to="/livestock"><Icon d={icons.animals} /><span>{t('navAnimals')}</span></NavLink> : <span />}
       </nav>
       {adding && <QuickAddSheet onClose={() => setAdding(false)} />}
+      {tourNeeded && !tourClosed && !previewingWorker && <WelcomeTour onClose={() => setTourClosed(true)} />}
     </div>
   )
 }

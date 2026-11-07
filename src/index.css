@@ -598,3 +598,7 @@ details summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
 .gs-tick { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--field-line); display: grid; place-items: center; font-weight: 800; color: #fff; flex: none; }
 .gs-done .gs-tick { background: var(--brand-2); border-color: var(--brand-2); }
 .gs-done .grow { color: var(--muted); text-decoration: line-through; }
+.tour { z-index: 2000; }
+.tour-sheet { text-align: center; gap: 12px; }
+.tour-emoji { font-size: 3rem; line-height: 1; }
+.tour-sheet p { line-height: 1.45; }

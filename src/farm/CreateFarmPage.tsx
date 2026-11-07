@@ -5,7 +5,7 @@ import { numOrNull } from '../components/ui'
 import { CROP_OPTIONS } from '../lib/crops'
 import { useI18n, type DictKey } from '../lib/i18n'
 import { SPECIES } from '../lib/livestock'
-import { supabase } from '../lib/supabase'
+import { supabase, type Tables } from '../lib/supabase'
 import { useFarm } from './FarmProvider'
 
 const LocationPicker = lazy(() => import('./LocationPicker').then((m) => ({ default: m.LocationPicker })))
@@ -13,12 +13,15 @@ const LocationPicker = lazy(() => import('./LocationPicker').then((m) => ({ defa
 type Step = 'welcome' | 'farm' | 'where' | 'what' | 'done'
 const STEPS: Step[] = ['welcome', 'farm', 'where', 'what']
 
-/** First time in the app: welcome, name the farm, put it on the map, say what is farmed. Then the farm is made. */
-export function CreateFarmPage() {
+/**
+ * First time in the app: welcome, name the farm, put it on the map, say what is farmed. Then the farm is made,
+ * or, for a farm made ready for its owners (`existing`), filled in so everyone on it sees the same.
+ */
+export function CreateFarmPage({ existing }: { existing?: Tables<'farms'> }) {
   const { t, w } = useI18n()
   const { refresh, selectFarm } = useFarm()
   const [step, setStep] = useState<Step>('welcome')
-  const [name, setName] = useState('')
+  const [name, setName] = useState(existing && existing.name !== 'Nuwe plaas' ? existing.name : '')
   const [town, setTown] = useState('')
   const [hectares, setHectares] = useState('')
   const [spot, setSpot] = useState<[number, number] | null>(null)
@@ -32,9 +35,15 @@ export function CreateFarmPage() {
     setBusy(true)
     setError(null)
     try {
-      const { data: farmId, error: e1 } = await supabase.rpc('create_farm', { p_name: name.trim(), p_location: town.trim() || undefined })
-      if (e1) throw e1
-      const patch: { total_hectares?: number; map_center_lat?: number; map_center_lng?: number } = {}
+      let farmId = existing?.id
+      if (!farmId) {
+        const { data, error: e1 } = await supabase.rpc('create_farm', { p_name: name.trim(), p_location: town.trim() || undefined })
+        if (e1) throw e1
+        farmId = data
+      }
+      const patch: Partial<Tables<'farms'>> = existing
+        ? { name: name.trim(), location_text: town.trim() || null, setup_completed_at: new Date().toISOString() }
+        : {}
       const ha = numOrNull(hectares)
       if (ha) patch.total_hectares = ha
       if (spot) { patch.map_center_lat = spot[0]; patch.map_center_lng = spot[1] }
@@ -42,13 +51,14 @@ export function CreateFarmPage() {
         const { error: e2 } = await supabase.from('farms').update(patch).eq('id', farmId)
         if (e2) throw e2
       }
+      if (existing) await supabase.from('farm_settings').update({ legal_name: name.trim() }).eq('farm_id', farmId)
       // One planning line per crop and animal kind: the figures are filled in later (Reports → planning figures).
       const lines = [...crops.map((c) => ({ kind: 'crop', name: c })), ...animals.map((a) => ({ kind: 'livestock', name: a }))]
       if (lines.length) {
         const { error: e3 } = await supabase.from('planning_estimates').insert(lines.map((l) => ({ ...l, farm_id: farmId })))
         if (e3) throw e3
       }
-      selectFarm(farmId)
+      selectFarm(farmId!)
       await refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : String((e as { message?: string }).message ?? e))
@@ -69,9 +79,10 @@ export function CreateFarmPage() {
           <img src="/icon.svg" alt="" width={64} height={64} />
           <h1>{t('setupWelcome')}</h1>
           <p>{t('setupWelcomeText')}</p>
+          {existing && <p className="notice">{t('setupSharedNote')}</p>}
           <LanguageSwitch />
           <button className="btn primary" onClick={next}>{t('setupStart')}</button>
-          <p className="small muted">{t('setupInvitedNote')}</p>
+          {!existing && <p className="small muted">{t('setupInvitedNote')}</p>}
           <SignOutButton className="btn ghost" />
         </section>
       )}
