@@ -28,7 +28,7 @@ export function FarmAlerts() {
   const openPins = pins.data?.length ?? 0
   const readings = rain.data ?? []
   const unread = useUnread()
-  const { isOwner } = useFarm()
+  const { isOwner, sees } = useFarm()
   const leave = useLeave()
   const pendingLeave = isOwner ? (leave.data ?? []).filter((l) => l.status === 'pending').length : 0
   // Planting rain (March–June) and frost / heat while crops flower, from the gauge and the forecast.
@@ -44,7 +44,7 @@ export function FarmAlerts() {
 
   return (
     <>
-      {unread.total > 0 && (
+      {sees('chat') && unread.total > 0 && (
         <Link to="/chat" className="card alert-link unread-card">
           <span className="kind-emoji" aria-hidden="true">💬</span>
           <div className="grow"><strong>{t('chatUnread', { n: unread.total })}</strong></div>
@@ -58,7 +58,7 @@ export function FarmAlerts() {
           <span className="chev">›</span>
         </Link>
       )}
-      {readings.length > 0 && (
+      {sees('rain') && readings.length > 0 && (
         <Link to="/rain" className="card alert-link">
           <span className="kind-emoji" aria-hidden="true">🌧️</span>
           <div className="grow">
@@ -68,32 +68,32 @@ export function FarmAlerts() {
           <span className="chev">›</span>
         </Link>
       )}
-      {planting?.season && (planting.enoughFell || planting.enoughComing) && (
+      {sees('outlook') && planting?.season && (planting.enoughFell || planting.enoughComing) && (
         <Link to="/outlook" className="card alert-link">
           <span className="kind-emoji" aria-hidden="true">🌱</span>
           <div className="grow"><strong>{t(planting.enoughFell ? 'pl_ready' : 'pl_coming', { mm: `${planting.mm} mm`, days: planting.days })}</strong></div>
           <span className="chev">›</span>
         </Link>
       )}
-      {flowering.length > 0 && (
+      {sees('outlook') && flowering.length > 0 && (
         <Link to="/outlook" className="warning">
           <strong>🌼 {t('fl_title')}</strong>
           {flowering.map((r) => <span key={r.date + r.kind}>{r.kind === 'frost' ? '❄️' : '🔥'} {r.date.slice(8, 10)}/{r.date.slice(5, 7)}: {t(r.kind === 'frost' ? 'fl_frost' : 'fl_heat', { v: formatNumber(r.value, 0, lang), crops: r.crops.map(w).join(', ') })}{r.fields.length ? ` (${r.fields.join(', ')})` : ''}</span>)}
         </Link>
       )}
-      {missing.length > 0 && (
+      {sees('animals') && missing.length > 0 && (
         <div className="warning">
           <strong>⚠ {t('hcDashTitle')}</strong>
           {missing.map((c) => <p key={c.group_id}><Link to={`/livestock/group/${c.group_id}`}>{groupName.get(c.group_id)}</Link>: {t('hcMissing', { n: c.missing })}</p>)}
         </div>
       )}
-      {due.length > 0 && (
+      {sees('vehicles') && due.length > 0 && (
         <div className="warning">
           <strong>🔧 {t('serviceTitle')}</strong>
           {due.map(({ v, s }) => <p key={v.id}><Link to={`/vehicles/${v.id}`}>{v.name}</Link>: {s!.due ? t('serviceDue') : t('serviceSoon')}</p>)}
         </div>
       )}
-      {openPins > 0 && (
+      {sees('pins') && openPins > 0 && (
         <Link to="/pins" className="card alert-link">
           <span className="kind-emoji" aria-hidden="true">📍</span>
           <div className="grow"><strong>{t('pinsOpen', { n: openPins })}</strong></div>

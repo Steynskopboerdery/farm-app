@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { SignOutButton } from '../../components/SignOutButton'
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthProvider'
 import { LanguageSwitch, VersionLabel } from '../../components/LanguageSwitch'
 import { ErrorText, numOrNull, Section, textOrNull } from '../../components/ui'
-import { PERMISSIONS, useFarm, useFarmId } from '../../farm/FarmProvider'
+import { AREAS, PERMISSIONS, seesIn, useFarm, useFarmId } from '../../farm/FarmProvider'
 import { useI18n, type DictKey } from '../../lib/i18n'
 import { PasswordSection } from './PasswordSection'
 import { NotificationsSection } from './NotificationsSection'
@@ -32,12 +32,12 @@ export function SettingsPage() {
       <NotificationsSection />
       {!isOwner && !previewingWorker && <p className="notice">{t('workerNote')}</p>}
       {realRole === 'owner' && (
-        <section className="card stack">
+        <section className="card stack" id="worker-view">
           <h2>{t('workerView')}</h2>
           <p className="small muted">{t('workerViewHelp')}</p>
           {previewingWorker
             ? <button className="btn lime" onClick={() => setPreviewWorker(false)}>{t('backToOwner')}</button>
-            : <button className="btn" onClick={() => setPreviewWorker(true)}>👁 {t('viewAsWorker')}</button>}
+            : <WorkerPreviewPicker />}
         </section>
       )}
       {isOwner && (
@@ -58,6 +58,29 @@ export function SettingsPage() {
       </section>
       <VersionLabel />
     </div>
+  )
+}
+
+/** Owners: pick whose screens to look at (a particular worker, or a worker with nothing extra switched on). */
+function WorkerPreviewPicker() {
+  const { t } = useI18n()
+  const { setPreviewWorker } = useFarm()
+  const navigate = useNavigate()
+  const members = useMembers()
+  const workers = (members.data ?? []).filter((m) => m.role === 'worker')
+  const [who, setWho] = useState('')
+  return (
+    <>
+      {workers.length > 0 && (
+        <label>{t('previewWho')}
+          <select value={who} onChange={(e) => setWho(e.target.value)}>
+            <option value="">{t('previewNoExtras')}</option>
+            {workers.map((m) => <option key={m.id} value={m.id}>{m.display_name || m.email}</option>)}
+          </select>
+        </label>
+      )}
+      <button className="btn" onClick={() => { setPreviewWorker(true, who || null); navigate('/') }}>👁 {t('viewAsWorker')}</button>
+    </>
   )
 }
 
@@ -255,6 +278,8 @@ function SpeciesSection() {
 
 function TeamSection() {
   const { t } = useI18n()
+  const { setPreviewWorker } = useFarm()
+  const navigate = useNavigate()
   const farmId = useFarmId()
   const { session } = useAuth()
   const qc = useQueryClient()
@@ -316,16 +341,32 @@ function TeamSection() {
                 )}
               </div>
               {m.role === 'worker' && (
-                <div className="perm-list">
-                  <span className="tiny muted">{t('workerMayAlso')}</span>
-                  {PERMISSIONS.map((p) => (
-                    <label key={p} className="check small">
-                      <input type="checkbox" checked={!!perms[p]}
-                        onChange={(e) => setPermissions.mutate({ id: m.id, permissions: { ...perms, [p]: e.target.checked } })} />
-                      {t(`perm_${p}` as DictKey)}
-                    </label>
-                  ))}
-                </div>
+                <>
+                  <div className="perm-list">
+                    <span className="tiny muted">{t('workerMaySee')}</span>
+                    <div className="see-grid">
+                      {AREAS.map((a) => (
+                        <label key={a} className="check small">
+                          <input type="checkbox" checked={seesIn(perms, a)}
+                            onChange={(e) => setPermissions.mutate({ id: m.id, permissions: { ...perms, [`see_${a}`]: e.target.checked } })} />
+                          {t(`area_${a}` as DictKey)}
+                        </label>
+                      ))}
+                    </div>
+                    <span className="tiny muted">{t('workerNeverSees')}</span>
+                  </div>
+                  <div className="perm-list">
+                    <span className="tiny muted">{t('workerMayAlso')}</span>
+                    {PERMISSIONS.map((p) => (
+                      <label key={p} className="check small">
+                        <input type="checkbox" checked={!!perms[p]}
+                          onChange={(e) => setPermissions.mutate({ id: m.id, permissions: { ...perms, [p]: e.target.checked } })} />
+                        {t(`perm_${p}` as DictKey)}
+                      </label>
+                    ))}
+                  </div>
+                  <button className="btn small" onClick={() => { setPreviewWorker(true, m.id); navigate('/') }}>👁 {t('seeTheirScreen')}</button>
+                </>
               )}
             </li>
           )

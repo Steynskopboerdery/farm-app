@@ -1,7 +1,7 @@
 import { useMutationState } from '@tanstack/react-query'
 import { useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { useFarm } from '../farm/FarmProvider'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { AREA_OF_PATH, useFarm } from '../farm/FarmProvider'
 import { useMessagesLive, useUnread } from '../lib/team'
 import { useI18n } from '../lib/i18n'
 import { QuickAddSheet } from './QuickAddSheet'
@@ -28,7 +28,7 @@ export function Icon({ d, size = 24 }: { d: string; size?: number }) {
 
 export function Layout() {
   const { t } = useI18n()
-  const { farm, previewingWorker, setPreviewWorker } = useFarm()
+  const { farm, previewingWorker, setPreviewWorker, sees } = useFarm()
   // Everyone may record rain, fuel and map pins, so the + button is always there.
   const canAdd = true
   const online = useOnline()
@@ -40,6 +40,9 @@ export function Layout() {
   const [adding, setAdding] = useState(false)
   // The home screen has its own green header.
   const showTopbar = pathname !== '/'
+  // Pages the owner has hidden for this worker.
+  const area = AREA_OF_PATH.find(([prefix]) => pathname === prefix || pathname.startsWith(`${prefix}/`))?.[1]
+  const hidden = !!area && !sees(area)
 
   return (
     <div className={`shell ${pathname === '/map' ? 'on-map' : ''} ${showTopbar ? '' : 'no-topbar'}`}>
@@ -50,7 +53,7 @@ export function Layout() {
             <span className="topbar-title">{farm?.name ?? t('appName')}</span>
             <span className="switch-caret" aria-hidden="true">▾</span>
           </NavLink>
-          <NavLink to="/chat" className="gear chat-link" aria-label={t('chatTitle')}>💬{unread.total > 0 && <span className="unread">{unread.total}</span>}</NavLink>
+          {sees('chat') && <NavLink to="/chat" className="gear chat-link" aria-label={t('chatTitle')}>💬{unread.total > 0 && <span className="unread">{unread.total}</span>}</NavLink>}
           <NavLink to="/menu" className="gear" aria-label={t('menu')}><Icon d={icons.menu} size={24} /></NavLink>
         </header>
       )}
@@ -64,18 +67,23 @@ export function Layout() {
         </div>
       )}
       <main className="content">
-        <Outlet />
+        {hidden ? (
+          <div className="page stack">
+            <p className="notice">🔒 {t('areaHidden')}</p>
+            <Link to="/" className="btn">{t('navHome')}</Link>
+          </div>
+        ) : <Outlet />}
       </main>
       <nav className={`tabbar ${canAdd ? 'with-fab' : ''}`}>
         <NavLink to="/" end><Icon d={icons.home} /><span>{t('navHome')}</span></NavLink>
-        <NavLink to="/map"><Icon d={icons.map} /><span>{t('navMap')}</span></NavLink>
+        {sees('map') ? <NavLink to="/map"><Icon d={icons.map} /><span>{t('navMap')}</span></NavLink> : <span />}
         {canAdd && (
           <button type="button" className="fab" aria-label={t('quickAdd')} onClick={() => setAdding(true)}>
             <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" /></svg>
           </button>
         )}
-        <NavLink to="/land"><Icon d={icons.land} /><span>{t('navLand')}</span></NavLink>
-        <NavLink to="/livestock"><Icon d={icons.animals} /><span>{t('navAnimals')}</span></NavLink>
+        {sees('fields') ? <NavLink to="/land"><Icon d={icons.land} /><span>{t('navLand')}</span></NavLink> : <span />}
+        {sees('animals') ? <NavLink to="/livestock"><Icon d={icons.animals} /><span>{t('navAnimals')}</span></NavLink> : <span />}
       </nav>
       {adding && <QuickAddSheet onClose={() => setAdding(false)} />}
     </div>

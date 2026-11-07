@@ -581,3 +581,4 @@ details summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
 .list .link-row.plain-btn { background: transparent; border: 0; padding: 8px 0; cursor: pointer; }
 .account-row { gap: 12px; }
 .account-row strong { word-break: break-all; }
+.see-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; }

@@ -38,7 +38,7 @@ function StatIcon({ d }: { d: string }) {
 
 export function DashboardPage() {
   const { t, w, lang } = useI18n()
-  const { farm, isOwner } = useFarm()
+  const { farm, isOwner, sees } = useFarm()
   const fields = useFields()
   const camps = useCamps()
   const plantings = useCurrentPlantings()
@@ -137,7 +137,7 @@ export function DashboardPage() {
 
       {isOwner && <UnpaidInvoicesCard />}
 
-      <WeatherCard />
+      {sees('weather') && <WeatherCard />}
 
       {(fields.data?.length ?? 0) === 0 ? <p className="notice">{t('noFieldsYet')}</p> : (
         <section className="stack-tight">
@@ -187,7 +187,7 @@ export function DashboardPage() {
         <ErrorText error={done.error} />
       </Section>
 
-      {harvestsSoon.length > 0 && (
+      {sees('fields') && harvestsSoon.length > 0 && (
         <Section title={t('dashHarvestsSoon')}>
           <ul className="list">
             {harvestsSoon.map(({ field, p }) => (
@@ -204,7 +204,7 @@ export function DashboardPage() {
         </Section>
       )}
 
-      <Section title={t('upcoming')} action={<Link to="/livestock" className="link-more">{t('seeAll')} ›</Link>}>
+      {sees('animals') && <Section title={t('upcoming')} action={<Link to="/livestock" className="link-more">{t('seeAll')} ›</Link>}>
         {upcoming.length === 0 ? <p className="muted">{t('nothingPlanned')}</p> : (
           <ul className="list">
             {upcoming.map((u) => (
@@ -221,9 +221,9 @@ export function DashboardPage() {
             ))}
           </ul>
         )}
-      </Section>
+      </Section>}
 
-      <Section title={t('cropOverview')}>
+      {sees('fields') && <Section title={t('cropOverview')}>
         {cropTotals.size === 0 ? <p className="muted">{t('nothingPlanned')}</p> : (
           <>
             <div className="crop-bar" aria-hidden="true">
@@ -243,7 +243,7 @@ export function DashboardPage() {
             </ul>
           </>
         )}
-      </Section>
+      </Section>}
     </div>
   )
 }
