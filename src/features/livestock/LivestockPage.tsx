@@ -5,16 +5,16 @@ import { useFarm } from '../../farm/FarmProvider'
 import { formatDateShort, formatNumber } from '../../lib/format'
 import { useI18n, type DictKey } from '../../lib/i18n'
 import { SPECIES, useRecentAnimalEvents } from '../../lib/livestock'
-import { useCamps, useGroups } from '../../lib/queries'
+import { useGroups } from '../../lib/queries'
+import { placeKey, usePlaces } from '../../lib/places'
 import { LivestockCalendar } from './LivestockCalendar'
 
 export function LivestockPage() {
   const { t, w, lang } = useI18n()
   const { isOwner } = useFarm()
   const groups = useGroups()
-  const camps = useCamps()
+  const { byKey } = usePlaces()
   const losses = useRecentAnimalEvents(['sale', 'death'])
-  const campName = new Map((camps.data ?? []).map((c) => [c.id, c.name]))
   const groupName = new Map((groups.data ?? []).map((g) => [g.id, g.name]))
 
   if (groups.isLoading) return <Loading />
@@ -53,7 +53,7 @@ export function LivestockPage() {
               <div className="grow">
                 <div className="group-name">{g.name} {g.is_sample && <span className="badge sample">{t('sample')}</span>}</div>
                 <div className="small muted">{[g.breed, w(g.class)].filter(Boolean).join(' · ')}</div>
-                <div className="small">{g.camp_id ? `📍 ${campName.get(g.camp_id) ?? ''}` : t('noCamp')}</div>
+                <div className="small">{byKey.get(placeKey(g)) ? `📍 ${byKey.get(placeKey(g))!.name}` : t('noCamp')}</div>
               </div>
               <div className="group-count"><strong>{formatNumber(g.quantity, 0, lang)}</strong><span className="tiny muted">{t('head')}</span></div>
             </Link>

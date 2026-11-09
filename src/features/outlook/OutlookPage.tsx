@@ -129,7 +129,7 @@ export function OutlookPage() {
   }).filter((x): x is { crop: string; tPerHa: number; seasonRainMm: number; year: number } => !!x)
   const share = achievedShare(ownResults)
   const fieldPlan: { field: string; crop: string; ha: number | null; planned: boolean }[] = []
-  for (const f of fields.data ?? []) {
+  for (const f of (fields.data ?? []).filter((x) => x.use !== 'grazing')) {
     const hist = plantings.filter((p) => p.field_id === f.id).map((p) => ({ year: seasonYear.get(p.season_id) ?? 0, crop: p.crop }))
     const now = hist.find((h) => h.year === year)
     if (now) fieldPlan.push({ field: f.name, crop: now.crop, ha: f.hectares, planned: true })

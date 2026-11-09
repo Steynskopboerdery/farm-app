@@ -14,12 +14,14 @@ import { formatHa } from '../../lib/format'
 import { useI18n } from '../../lib/i18n'
 import { useCamps, useCurrentPlantings, useFields } from '../../lib/queries'
 import { supabase } from '../../lib/supabase'
-import { OVERLAY_KEY } from '../land/MapImportPage'
+import { applyAffine, insideRing } from '../../lib/calc/affine'
+import { loadOverlay, removeOverlay as forgetOverlay } from '../../lib/mapOverlay'
+import { affineImageLayer, toLatLng } from './affineOverlay'
 import { PIN_EMOJI, usePins } from '../../lib/farmRecords'
 import { PinDetails, PinForm } from './PinSheets'
 
 type Kind = 'field' | 'camp'
-interface Area { kind: Kind; id: string; name: string; hectares: number | null; boundary: Boundary | null; isSample: boolean; crop: string | null }
+interface Area { kind: Kind; id: string; name: string; hectares: number | null; boundary: Boundary | null; isSample: boolean; crop: string | null; grazing?: boolean }
 type Mode = 'view' | 'drawing' | 'assign' | 'editing' | 'pin'
 
 // Between Swellendam and Bredasdorp, used until outlines exist.
@@ -62,21 +64,30 @@ export function MapPage() {
   const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
   // An old farm map photo laid see-through over the satellite view, to trace outlines from.
-  const [overlay, setOverlay] = useState<string | null>(() => { try { return sessionStorage.getItem(OVERLAY_KEY) } catch { return null } })
-  const [overlayOpacity, setOverlayOpacity] = useState(0.5)
+  // It is lined up with the satellite map (see MapAlignPage), so it moves and zooms with it.
+  const [overlay, setOverlay] = useState(() => { const o = loadOverlay(farmId); return o?.t ? o : null })
+  const [overlayOpacity, setOverlayOpacity] = useState(0.55)
   const [overlayShown, setOverlayShown] = useState(true)
-  const removeOverlay = () => { try { sessionStorage.removeItem(OVERLAY_KEY) } catch { /* ignore */ } setOverlay(null) }
+  const overlayLayer = useRef<ReturnType<typeof affineImageLayer> | null>(null)
+  const removeOverlay = () => { if (confirm(t('overlayRemoveAsk'))) { forgetOverlay(farmId); setOverlay(null) } }
+  // Names read off the photo, placed on the map: offered as the name when an outline is drawn around one.
+  const labelSpots = useMemo(() => (overlay?.t ? overlay.labels.map((l) => {
+    const ll = toLatLng(applyAffine(overlay.t!, l.x, l.y))
+    return { ...l, lng: ll.lng, lat: ll.lat }
+  }) : []), [overlay])
 
   const areas: Area[] = useMemo(() => [
     ...(fields.data ?? []).map((f) => ({
       kind: 'field' as const, id: f.id, name: f.name, hectares: f.hectares, isSample: f.is_sample,
-      boundary: f.boundary_geojson as unknown as Boundary | null, crop: plantings.data?.get(f.id)?.crop ?? null,
+      boundary: f.boundary_geojson as unknown as Boundary | null, crop: f.use === 'grazing' ? null : plantings.data?.get(f.id)?.crop ?? null,
+      grazing: f.use === 'grazing',
     })),
     ...(camps.data ?? []).map((c) => ({
       kind: 'camp' as const, id: c.id, name: c.name, hectares: c.hectares, isSample: c.is_sample,
       boundary: c.boundary_geojson as unknown as Boundary | null, crop: null,
     })),
   ], [fields.data, camps.data, plantings.data])
+
 
   const selectedArea = selected ? areas.find((a) => a.kind === selected.kind && a.id === selected.id) ?? null : null
 
@@ -99,6 +110,22 @@ export function MapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // The lined-up old map photo (after the map exists).
+  useEffect(() => {
+    const map = mapRef.current
+    overlayLayer.current?.remove()
+    overlayLayer.current = null
+    if (!map || !overlay?.t || !overlayShown) return
+    overlayLayer.current = affineImageLayer(overlay.photo, overlay.w, overlay.h, overlay.t, overlayOpacity)
+    overlayLayer.current.addTo(map)
+    if (!fittedRef.current && !(fields.data ?? []).some((f) => f.boundary_geojson)) {
+      const c = toLatLng(applyAffine(overlay.t, overlay.w / 2, overlay.h / 2))
+      map.setView(c, 15)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlay, overlayShown])
+  useEffect(() => { overlayLayer.current?.setOpacity(overlayOpacity) }, [overlayOpacity])
+
   // Draw outlines whenever the data changes (not while editing a shape).
   useEffect(() => {
     const map = mapRef.current
@@ -108,7 +135,8 @@ export function MapPage() {
     layersRef.current.clear()
     for (const a of areas) {
       if (!a.boundary) continue
-      const colour = a.kind === 'camp' ? CAMP_COLOUR : cropColour(a.crop)
+      // Grazing fields look like camps on the map.
+      const colour = a.kind === 'camp' || a.grazing ? CAMP_COLOUR : cropColour(a.crop)
       const isSel = selected?.kind === a.kind && selected.id === a.id
       const layer = L.geoJSON(a.boundary, {
         style: {
@@ -324,13 +352,13 @@ export function MapPage() {
   return (
     <div className="map-page">
       <div ref={mapEl} className="map" />
-      {overlay && overlayShown && <img src={overlay} alt="" className="map-overlay" style={{ opacity: overlayOpacity }} />}
       {overlay && (
         <div className="overlay-bar">
-          <span className="tiny">{t('overlayHelp')}</span>
+          <span className="tiny">{t('overlayAligned')}</span>
           <input type="range" min={0.1} max={0.9} step={0.05} value={overlayOpacity} aria-label={t('seeThrough')}
             onChange={(e) => setOverlayOpacity(Number(e.target.value))} />
           <button className="btn small" onClick={() => setOverlayShown(!overlayShown)}>{overlayShown ? '🙈' : '👁'}</button>
+          <Link className="btn small" to="/land/align">📐</Link>
           <button className="btn small" onClick={removeOverlay} aria-label={t('close')}>✕</button>
         </div>
       )}
@@ -384,6 +412,10 @@ export function MapPage() {
           ha={formatHa(pending.ha, lang)}
           target={targetArea ?? null}
           withoutOutline={withoutOutline}
+          suggested={(() => {
+            const ring = (pending.geometry.type === 'Polygon' ? pending.geometry.coordinates[0] : pending.geometry.coordinates[0][0]) as [number, number][]
+            return labelSpots.find((l) => insideRing([l.lng, l.lat], ring)) ?? null
+          })()}
           busy={busy}
           onAssign={assign}
           onCancel={cancelDrawing}
@@ -427,17 +459,34 @@ export function MapPage() {
   )
 }
 
-function AssignSheet({ ha, target, withoutOutline, busy, onAssign, onCancel }: {
+/** "13a" on an old map is "Land 13a – Name" in the app; names also match whole. */
+function sameArea(name: string, label: string) {
+  const n = name.trim().toLowerCase()
+  const l = label.trim().toLowerCase().replace(/^(land|kamp|camp)\s+/, '')
+  if (!l) return false
+  if (n === label.trim().toLowerCase()) return true
+  const num = n.match(/^(?:land|kamp|camp)?\s*(\d+[a-z]?)\b/)
+  return (num && num[1] === l) || n.split(/\s+[–-]\s+/)[1]?.trim() === l
+}
+
+function AssignSheet({ ha, target, withoutOutline, suggested, busy, onAssign, onCancel }: {
   ha: string
   target: Area | null
   withoutOutline: Area[]
+  /** A name read off the old map photo that lies inside the drawn outline. */
+  suggested: { name: string; kind: Kind } | null
   busy: boolean
   onAssign: (c: { type: 'new'; kind: Kind; name: string } | { type: 'existing'; kind: Kind; id: string }) => void
   onCancel: () => void
 }) {
   const { t } = useI18n()
-  const [choice, setChoice] = useState<string>(target ? `${target.kind}:${target.id}` : withoutOutline[0] ? `${withoutOutline[0].kind}:${withoutOutline[0].id}` : 'new-field')
-  const [name, setName] = useState('')
+  // The area with the name read inside the outline, else a new one with that name, else the first without an outline.
+  const match = suggested ? withoutOutline.find((a) => sameArea(a.name, suggested.name)) : undefined
+  const [choice, setChoice] = useState<string>(target ? `${target.kind}:${target.id}`
+    : match ? `${match.kind}:${match.id}`
+      : suggested ? (suggested.kind === 'camp' ? 'new-camp' : 'new-field')
+        : withoutOutline[0] ? `${withoutOutline[0].kind}:${withoutOutline[0].id}` : 'new-field')
+  const [name, setName] = useState(suggested && !match ? suggested.name : '')
 
   function submit() {
     if (choice === 'new-field' || choice === 'new-camp') {
@@ -453,6 +502,7 @@ function AssignSheet({ ha, target, withoutOutline, busy, onAssign, onCancel }: {
     <div className="map-sheet stack">
       <h2>{t('mapAssignTitle')}</h2>
       <p>{t('mapAssignArea')}: <strong>{ha}</strong></p>
+      {suggested && !target && <p className="small notice">📖 {t('mapReadName', { name: suggested.name })}</p>}
       {target ? <p><strong>{target.name}</strong></p> : (
         <>
           <label>

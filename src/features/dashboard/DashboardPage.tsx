@@ -58,8 +58,11 @@ export function DashboardPage() {
 
   if (fields.isLoading) return <Loading />
 
-  const cropHa = (fields.data ?? []).reduce((s, f) => s + (f.hectares ?? 0), 0)
-  const campHa = (camps.data ?? []).reduce((s, c) => s + (c.hectares ?? 0), 0)
+  // Fields used for grazing count with the grazing, not the cropland.
+  const cropFields = (fields.data ?? []).filter((f) => f.use !== 'grazing')
+  const grazeFields = (fields.data ?? []).filter((f) => f.use === 'grazing')
+  const cropHa = cropFields.reduce((s, f) => s + (f.hectares ?? 0), 0)
+  const campHa = [...(camps.data ?? []), ...grazeFields].reduce((s, c) => s + (c.hectares ?? 0), 0)
   const sheep = (groups.data ?? []).filter((g) => g.species === 'sheep').reduce((s, g) => s + g.quantity, 0)
   const cattle = (groups.data ?? []).filter((g) => g.species === 'cattle').reduce((s, g) => s + g.quantity, 0)
   const hasSample = (fields.data ?? []).some((f) => f.is_sample) || (groups.data ?? []).some((g) => g.is_sample)
@@ -110,8 +113,8 @@ export function DashboardPage() {
       <ErrorText error={fields.error} />
 
       <div className="stats">
-        <Link to="/land" className="stat"><StatIcon d={STAT_ICONS.crop} /><span className="stat-n">{formatHa(cropHa, lang)}</span><span className="stat-l">{t('cropland')} · {fields.data?.length ?? 0}</span></Link>
-        <Link to="/land?tab=camps" className="stat"><StatIcon d={STAT_ICONS.camp} /><span className="stat-n">{formatHa(campHa, lang)}</span><span className="stat-l">{t('grazing')} · {camps.data?.length ?? 0}</span></Link>
+        <Link to="/land" className="stat"><StatIcon d={STAT_ICONS.crop} /><span className="stat-n">{formatHa(cropHa, lang)}</span><span className="stat-l">{t('cropland')} · {cropFields.length}</span></Link>
+        <Link to="/land?tab=camps" className="stat"><StatIcon d={STAT_ICONS.camp} /><span className="stat-n">{formatHa(campHa, lang)}</span><span className="stat-l">{t('grazing')} · {(camps.data?.length ?? 0) + grazeFields.length}</span></Link>
         <Link to="/livestock" className="stat"><StatIcon d={STAT_ICONS.sheep} /><span className="stat-n">{formatNumber(sheep, 0, lang)}</span><span className="stat-l">{t('sheep')}</span></Link>
         <Link to="/livestock" className="stat"><StatIcon d={STAT_ICONS.cattle} /><span className="stat-n">{formatNumber(cattle, 0, lang)}</span><span className="stat-l">{t('cattle')}</span></Link>
       </div>

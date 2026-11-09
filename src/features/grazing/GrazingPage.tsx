@@ -8,7 +8,8 @@ import { mineralAdvice, type AdviceRule, type Nutrient } from '../../lib/calc/ad
 import { todayIso } from '../../lib/calc/dates'
 import { formatDateShort, formatHa, formatNumber } from '../../lib/format'
 import { useI18n, type DictKey } from '../../lib/i18n'
-import { useCamps, useGroups } from '../../lib/queries'
+import { useGroups } from '../../lib/queries'
+import { pastureLabel, placeKey, usePlaces } from '../../lib/places'
 import { supabase, type Tables } from '../../lib/supabase'
 
 const NUTRIENTS: Nutrient[] = ['protein_pct', 'phosphorus_pct', 'calcium_pct', 'magnesium_pct']
@@ -32,12 +33,14 @@ function usePastureData() {
 export function GrazingPage() {
   const { t, w, lang } = useI18n()
   const { isOwner, can } = useFarm()
-  const camps = useCamps()
+  const { places, isLoading } = usePlaces()
   const groups = useGroups()
   const data = usePastureData()
   const [adding, setAdding] = useState<string | null>(null)
 
-  if (camps.isLoading || data.isLoading) return <Loading />
+  if (isLoading || data.isLoading) return <Loading />
+  // Camps and grazing fields always; planted fields only while animals are on them (stubble, failed crop).
+  const shown = places.filter((p) => !p.planted || (groups.data ?? []).some((g) => placeKey(g) === p.key))
   const tests = data.data?.tests ?? []
   const rules = data.data?.rules ?? []
 
@@ -47,22 +50,23 @@ export function GrazingPage() {
       <h1>{t('menuGrazing')}</h1>
       <p className="advice">⚠ {t('mineralDisclaimer')}</p>
       <ErrorText error={data.error} />
-      {(camps.data ?? []).length === 0 && <p className="muted">{t('noCamps')}</p>}
+      {shown.length === 0 && <p className="muted">{t('noCamps')}</p>}
 
-      {(camps.data ?? []).map((c) => {
-        const here = (groups.data ?? []).filter((g) => g.camp_id === c.id)
+      {/* Camps and fields used for grazing. Pasture tests are kept for camps. */}
+      {shown.map((c) => {
+        const here = (groups.data ?? []).filter((g) => placeKey(g) === c.key)
         const species = [...new Set(here.map((g) => g.species))]
         const campTests = tests.filter((x) => x.camp_id === c.id)
         const latest = campTests[0]
         const advice = latest ? mineralAdvice(latest, species.length ? species : ['sheep', 'cattle'], rules) : []
         return (
-          <section key={c.id} className="card">
+          <section key={c.key} className="card">
             <div className="card-head">
               <div>
-                <h2>{c.name}</h2>
-                <p className="small muted">{[formatHa(c.hectares, lang), c.pasture_type].filter(Boolean).join(' · ')}</p>
+                <h2><Link to={`/land/${c.kind}/${c.id}`}>{c.name}</Link>{c.kind === 'field' && <span className="tiny muted"> · {t('field')}</span>}</h2>
+                <p className="small muted">{[formatHa(c.hectares, lang), pastureLabel(t, c.pasture)].filter(Boolean).join(' · ')}</p>
               </div>
-              {can('pasture') && adding !== c.id && <button className="btn small" onClick={() => setAdding(c.id)}>+ {t('pastureTest')}</button>}
+              {c.kind === 'camp' && can('pasture') && adding !== c.id && <button className="btn small" onClick={() => setAdding(c.id)}>+ {t('pastureTest')}</button>}
             </div>
             {here.length > 0 && (
               <div className="chips">

@@ -8,8 +8,9 @@ import { formatDateTime, formatHa } from '../../lib/format'
 import { useI18n, type DictKey } from '../../lib/i18n'
 import { FieldSeasonPanel } from '../crops/FieldSeasonPanel'
 import { useAuditLog, useCamps, useFields, useGroups, useMembers } from '../../lib/queries'
-import { AnimalIcon } from '../../components/AnimalIcon'
-import { supabase } from '../../lib/supabase'
+import { PlaceAnimals } from './PlaceAnimals'
+import { PASTURES } from '../../lib/places'
+import { supabase, type Tables } from '../../lib/supabase'
 
 export function LandDetailPage() {
   const { kind, id } = useParams<{ kind: 'field' | 'camp'; id: string }>()
@@ -22,7 +23,9 @@ export function LandDetailPage() {
   const fields = useFields()
   const camps = useCamps()
 
-  const record = isField ? fields.data?.find((f) => f.id === id) : camps.data?.find((c) => c.id === id)
+  const fieldRec = isField ? fields.data?.find((f) => f.id === id) : undefined
+  const campRec = isField ? undefined : camps.data?.find((c) => c.id === id)
+  const record = fieldRec ?? campRec
 
   const [form, setForm] = useState({ name: '', hectares: '', type: '', notes: '' })
   useEffect(() => {
@@ -30,7 +33,7 @@ export function LandDetailPage() {
     setForm({
       name: record.name,
       hectares: record.hectares?.toString() ?? '',
-      type: ('soil_type' in record ? record.soil_type : record.pasture_type) ?? '',
+      type: (fieldRec ? fieldRec.soil_type : campRec?.pasture_type) ?? '',
       notes: record.notes ?? '',
     })
   }, [record])
@@ -75,9 +78,9 @@ export function LandDetailPage() {
       <Link to={`/land${isField ? '' : '?tab=camps'}`} className="back">‹ {t('back')}</Link>
       <h1>{record.name} <SampleBadge show={record.is_sample} /></h1>
 
-      {isField && <FieldSeasonPanel fieldId={id!} fieldName={record.name} hectares={record.hectares} />}
+      {fieldRec && <FieldUse field={fieldRec} />}
 
-      {!isField && <CampAnimals campId={id!} />}
+      {!isField && <PlaceAnimals placeKind="camp" placeId={id!} hectares={record.hectares} />}
 
       <Section title={t('outline')}>
         <p>{boundary ? t('outlineDrawn', { ha: formatHa(hectaresFromBoundary(boundary), lang) }) : t('outlineMissing')}</p>
@@ -157,26 +160,46 @@ function History({ table, id, withChildren }: { table: string; id: string; withC
 
 const fmt = (v: unknown) => (v == null || v === '' ? '–' : String(v))
 
-function CampAnimals({ campId }: { campId: string }) {
-  const { t, w } = useI18n()
+/** A field is planted for harvest (its crops and season records) or used for grazing (what grows, and the animals on it). */
+function FieldUse({ field }: { field: Tables<'fields'> }) {
+  const { t } = useI18n()
+  const { isOwner } = useFarm()
+  const qc = useQueryClient()
   const groups = useGroups()
-  const here = (groups.data ?? []).filter((g) => g.camp_id === campId)
+  const onIt = (groups.data ?? []).filter((g) => g.field_id === field.id).length
+  const save = useMutation({
+    mutationFn: async (patch: Partial<Tables<'fields'>>) => {
+      const { error } = await supabase.from('fields').update(patch).eq('id', field.id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['fields'] }),
+  })
+  const grazing = field.use === 'grazing'
   return (
-    <Section title={t('animalsHere')}>
-      {here.length === 0 ? <p className="muted">{t('noEvents')}</p> : (
-        <ul className="list">
-          {here.map((g) => (
-            <li key={g.id}>
-              <Link className="row link-row" to={`/livestock/group/${g.id}`}>
-                <AnimalIcon species={g.species} size={36} />
-                <div className="grow">{g.name}<span className="small muted"> · {w(g.class)}</span></div>
-                <strong>{g.quantity}</strong>
-                <span className="chev">›</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Section>
+    <>
+      <section className="card stack">
+        <h2>{t('fieldUseTitle')}</h2>
+        <div className="segmented">
+          <button className={!grazing ? 'on' : ''} disabled={!isOwner || save.isPending} onClick={() => save.mutate({ use: 'crop' })}>🌾 {t('useCrop')}</button>
+          <button className={grazing ? 'on' : ''} disabled={!isOwner || save.isPending} onClick={() => save.mutate({ use: 'grazing' })}>🐑 {t('useGrazing')}</button>
+        </div>
+        <p className="small muted">{grazing ? t('useGrazingHelp') : t('useCropHelp')}</p>
+        {grazing && (
+          <>
+            <span className="label-text">{t('whatGrowsHere')}</span>
+            <div className="chip-wrap">
+              {PASTURES.map((p) => (
+                <button key={p} className={`chip ${field.pasture_type === p ? 'on' : ''}`} disabled={!isOwner || save.isPending}
+                  onClick={() => save.mutate({ pasture_type: field.pasture_type === p ? null : p })}>{t(`past_${p}` as DictKey)}</button>
+              ))}
+            </div>
+          </>
+        )}
+        <ErrorText error={save.error} />
+      </section>
+      {!grazing && <FieldSeasonPanel fieldId={field.id} fieldName={field.name} hectares={field.hectares} />}
+      {/* Planted fields are grazed too: stubble after harvest, or a crop not worth harvesting. */}
+      {(grazing || onIt > 0 || isOwner) && <PlaceAnimals placeKind="field" placeId={field.id} hectares={field.hectares} note={grazing ? undefined : t('grazeAfterHarvest')} />}
+    </>
   )
 }

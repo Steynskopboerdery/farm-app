@@ -31,6 +31,7 @@ import { ChatList, ChatThread } from './features/team/ChatPage'
 
 // Charts are large, so the reports load only when opened.
 const OutlookPage = lazy(() => import('./features/outlook/OutlookPage').then((m) => ({ default: m.OutlookPage })))
+const MapAlignPage = lazy(() => import('./features/land/MapAlignPage').then((m) => ({ default: m.MapAlignPage })))
 const BudgetPage = lazy(() => import('./features/budget/BudgetPage').then((m) => ({ default: m.BudgetPage })))
 const RainPage = lazy(() => import('./features/rain/RainPage').then((m) => ({ default: m.RainPage })))
 const ReportsPage = lazy(() => import('./features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })))
@@ -76,6 +77,7 @@ export default function App() {
           <Route path="map" element={<Suspense fallback={<Loading />}><MapPage /></Suspense>} />
           <Route path="land" element={<LandPage />} />
           <Route path="land/import" element={<MapImportPage />} />
+          <Route path="land/align" element={<Suspense fallback={<Loading />}><MapAlignPage /></Suspense>} />
           <Route path="land/:kind/:id" element={<LandDetailPage />} />
           <Route path="land/field/:id/record/:type/:recordId?" element={<RecordFormPage />} />
           <Route path="settings" element={<SettingsPage />} />

@@ -1,4 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { PlaceOptions } from '../../components/PlaceOptions'
+import { placeColumns, placeKey, usePlaces } from '../../lib/places'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AnimalIcon } from '../../components/AnimalIcon'
@@ -9,7 +11,7 @@ import { breedingDates, countAfter, countChange, type EventType } from '../../li
 import { formatDate } from '../../lib/format'
 import { useI18n, type DictKey } from '../../lib/i18n'
 import { CLASSES, EVENT_TYPES, SPECIES, useGroupRecords, type Group } from '../../lib/livestock'
-import { useCamps, useGroups, useSpecies } from '../../lib/queries'
+import { useGroups, useSpecies } from '../../lib/queries'
 import { supabase } from '../../lib/supabase'
 
 const EVENT_EMOJI: Record<EventType, string> = {
@@ -56,16 +58,18 @@ function GroupForm({ group }: { group?: Group }) {
   const farmId = useFarmId()
   const navigate = useNavigate()
   const invalidate = useInvalidate()
-  const camps = useCamps()
+  const { places } = usePlaces()
+  // ?place=field:<id> when adding animals from a field or camp page.
+  const startPlace = new URLSearchParams(location.search).get('place') ?? ''
   const [f, setF] = useState({
     name: group?.name ?? '', species: group?.species ?? 'sheep', cls: group?.class ?? 'ewes', breed: group?.breed ?? '',
-    quantity: String(group?.quantity ?? ''), camp: group?.camp_id ?? '', notes: group?.notes ?? '',
+    quantity: String(group?.quantity ?? ''), camp: group ? placeKey(group) : startPlace, notes: group?.notes ?? '',
   })
   const save = useMutation({
     mutationFn: async () => {
       const row = {
         name: f.name.trim(), species: f.species, class: f.cls, breed: textOrNull(f.breed),
-        quantity: Math.max(0, Math.round(numOrNull(f.quantity) ?? 0)), camp_id: f.camp || null, notes: textOrNull(f.notes),
+        quantity: Math.max(0, Math.round(numOrNull(f.quantity) ?? 0)), ...placeColumns(f.camp), notes: textOrNull(f.notes),
       }
       if (group) {
         const { error } = await supabase.from('livestock_groups').update(row).eq('id', group.id)
@@ -101,10 +105,10 @@ function GroupForm({ group }: { group?: Group }) {
           <label>{t('quantity')}<input inputMode="numeric" value={f.quantity} onChange={(e) => setF({ ...f, quantity: e.target.value })} /></label>
         </div>
         <label>{t('breed')}<input value={f.breed} onChange={(e) => setF({ ...f, breed: e.target.value })} /></label>
-        <label>{t('camp')}
+        <label>{t('whereGrazing')}
           <select value={f.camp} onChange={(e) => setF({ ...f, camp: e.target.value })}>
             <option value="">{t('noCamp')}</option>
-            {(camps.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            <PlaceOptions places={places} />
           </select>
         </label>
         <label>{t('notes')}<textarea rows={2} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></label>
@@ -122,7 +126,7 @@ function EventForm({ group, recordId }: { group: Group; recordId?: string }) {
   const farmId = useFarmId()
   const navigate = useNavigate()
   const invalidate = useInvalidate()
-  const camps = useCamps()
+  const { places, byKey } = usePlaces()
   const records = useGroupRecords(group.id)
   const existing = recordId ? records.data?.events.find((e) => e.id === recordId) : undefined
   const animals = (records.data?.animals ?? []).filter((a) => a.status === 'alive' || a.id === existing?.animal_id)
@@ -130,7 +134,7 @@ function EventForm({ group, recordId }: { group: Group; recordId?: string }) {
   const [f, setF] = useState({
     date: existing?.date ?? todayIso(), quantity: existing?.quantity != null ? String(existing.quantity) : '',
     weight: existing?.weight_kg != null ? String(existing.weight_kg) : '', product: existing?.product ?? '',
-    toCamp: existing?.to_camp_id ?? '', animal: existing?.animal_id ?? '', notes: existing?.notes ?? '', nextDue: '',
+    toCamp: existing ? (existing.to_field_id ? `field:${existing.to_field_id}` : existing.to_camp_id ? `camp:${existing.to_camp_id}` : '') : '', animal: existing?.animal_id ?? '', notes: existing?.notes ?? '', nextDue: '',
   })
   const [adjust, setAdjust] = useState(true)
   const [moveGroup, setMoveGroup] = useState(true)
@@ -148,8 +152,10 @@ function EventForm({ group, recordId }: { group: Group; recordId?: string }) {
         quantity: f.animal ? 1 : numOrNull(f.quantity) == null ? null : Math.round(numOrNull(f.quantity)!),
         weight_kg: type === 'weighing' ? numOrNull(f.weight) : null,
         product: type === 'vaccination' || type === 'dosing' || type === 'other' ? textOrNull(f.product) : null,
-        from_camp_id: type === 'moved' ? (existing?.from_camp_id ?? group.camp_id) : null,
-        to_camp_id: type === 'moved' ? f.toCamp || null : null,
+        from_camp_id: type === 'moved' ? (existing ? existing.from_camp_id : group.camp_id) : null,
+        from_field_id: type === 'moved' ? (existing ? existing.from_field_id : group.field_id) : null,
+        to_camp_id: type === 'moved' ? placeColumns(f.toCamp).camp_id : null,
+        to_field_id: type === 'moved' ? placeColumns(f.toCamp).field_id : null,
         notes: textOrNull(f.notes),
       }
       const { error } = existing
@@ -167,7 +173,7 @@ function EventForm({ group, recordId }: { group: Group; recordId?: string }) {
         if (error) throw error
       }
       if (type === 'moved' && moveGroup && f.toCamp) {
-        const { error } = await supabase.from('livestock_groups').update({ camp_id: f.toCamp }).eq('id', group.id)
+        const { error } = await supabase.from('livestock_groups').update(placeColumns(f.toCamp)).eq('id', group.id)
         if (error) throw error
       }
       if ((type === 'vaccination' || type === 'dosing') && f.nextDue) {
@@ -225,10 +231,10 @@ function EventForm({ group, recordId }: { group: Group; recordId?: string }) {
             <label>{t('toCamp')}
               <select value={f.toCamp} disabled={!canEdit} onChange={(e) => setF({ ...f, toCamp: e.target.value })}>
                 <option value="">–</option>
-                {(camps.data ?? []).filter((c) => c.id !== group.camp_id || c.id === f.toCamp).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <PlaceOptions places={places} skip={placeKey(group) === f.toCamp ? undefined : placeKey(group)} />
               </select>
             </label>
-            {!existing && <label className="check"><input type="checkbox" checked={moveGroup} onChange={(e) => setMoveGroup(e.target.checked)} /> {t('groupDetails')}: {t('camp').toLowerCase()} → {camps.data?.find((c) => c.id === f.toCamp)?.name ?? '…'}</label>}
+            {!existing && <label className="check"><input type="checkbox" checked={moveGroup} onChange={(e) => setMoveGroup(e.target.checked)} /> {t('groupDetails')}: {t('camp').toLowerCase()} → {byKey.get(f.toCamp)?.name ?? '…'}</label>}
           </>
         )}
         {changesCount && (

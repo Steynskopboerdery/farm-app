@@ -49,12 +49,14 @@ export type Database = {
           deleted_at: string | null
           farm_id: string
           from_camp_id: string | null
+          from_field_id: string | null
           group_id: string | null
           id: string
           notes: string | null
           product: string | null
           quantity: number | null
           to_camp_id: string | null
+          to_field_id: string | null
           type: string
           updated_at: string
           weight_kg: number | null
@@ -67,12 +69,14 @@ export type Database = {
           deleted_at?: string | null
           farm_id: string
           from_camp_id?: string | null
+          from_field_id?: string | null
           group_id?: string | null
           id?: string
           notes?: string | null
           product?: string | null
           quantity?: number | null
           to_camp_id?: string | null
+          to_field_id?: string | null
           type: string
           updated_at?: string
           weight_kg?: number | null
@@ -85,12 +89,14 @@ export type Database = {
           deleted_at?: string | null
           farm_id?: string
           from_camp_id?: string | null
+          from_field_id?: string | null
           group_id?: string | null
           id?: string
           notes?: string | null
           product?: string | null
           quantity?: number | null
           to_camp_id?: string | null
+          to_field_id?: string | null
           type?: string
           updated_at?: string
           weight_kg?: number | null
@@ -118,6 +124,13 @@ export type Database = {
             referencedColumns: ["farm_id", "id"]
           },
           {
+            foreignKeyName: "animal_events_farm_id_from_field_id_fkey"
+            columns: ["farm_id", "from_field_id"]
+            isOneToOne: false
+            referencedRelation: "fields"
+            referencedColumns: ["farm_id", "id"]
+          },
+          {
             foreignKeyName: "animal_events_farm_id_group_id_fkey"
             columns: ["farm_id", "group_id"]
             isOneToOne: false
@@ -129,6 +142,13 @@ export type Database = {
             columns: ["farm_id", "to_camp_id"]
             isOneToOne: false
             referencedRelation: "camps"
+            referencedColumns: ["farm_id", "id"]
+          },
+          {
+            foreignKeyName: "animal_events_farm_id_to_field_id_fkey"
+            columns: ["farm_id", "to_field_id"]
+            isOneToOne: false
+            referencedRelation: "fields"
             referencedColumns: ["farm_id", "id"]
           },
         ]
@@ -985,8 +1005,10 @@ export type Database = {
           is_sample: boolean
           name: string
           notes: string | null
+          pasture_type: string | null
           soil_type: string | null
           updated_at: string
+          use: string
         }
         Insert: {
           boundary_geojson?: Json | null
@@ -1000,8 +1022,10 @@ export type Database = {
           is_sample?: boolean
           name: string
           notes?: string | null
+          pasture_type?: string | null
           soil_type?: string | null
           updated_at?: string
+          use?: string
         }
         Update: {
           boundary_geojson?: Json | null
@@ -1015,8 +1039,10 @@ export type Database = {
           is_sample?: boolean
           name?: string
           notes?: string | null
+          pasture_type?: string | null
           soil_type?: string | null
           updated_at?: string
+          use?: string
         }
         Relationships: [
           {
@@ -1454,6 +1480,7 @@ export type Database = {
           created_by: string | null
           deleted_at: string | null
           farm_id: string
+          field_id: string | null
           id: string
           is_sample: boolean
           name: string
@@ -1470,6 +1497,7 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           farm_id: string
+          field_id?: string | null
           id?: string
           is_sample?: boolean
           name: string
@@ -1486,6 +1514,7 @@ export type Database = {
           created_by?: string | null
           deleted_at?: string | null
           farm_id?: string
+          field_id?: string | null
           id?: string
           is_sample?: boolean
           name?: string
@@ -1500,6 +1529,13 @@ export type Database = {
             columns: ["farm_id", "camp_id"]
             isOneToOne: false
             referencedRelation: "camps"
+            referencedColumns: ["farm_id", "id"]
+          },
+          {
+            foreignKeyName: "livestock_groups_farm_id_field_id_fkey"
+            columns: ["farm_id", "field_id"]
+            isOneToOne: false
+            referencedRelation: "fields"
             referencedColumns: ["farm_id", "id"]
           },
           {

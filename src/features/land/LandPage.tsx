@@ -7,7 +7,8 @@ import { CropIcon } from '../../components/CropIcon'
 import { CAMP_COLOUR } from '../../lib/crops'
 import { formatHa } from '../../lib/format'
 import { useI18n } from '../../lib/i18n'
-import { useCamps, useCurrentPlantings, useFields } from '../../lib/queries'
+import { useCamps, useCurrentPlantings, useFields, useGroups } from '../../lib/queries'
+import { pastureLabel } from '../../lib/places'
 import { supabase } from '../../lib/supabase'
 
 export function LandPage() {
@@ -18,6 +19,12 @@ export function LandPage() {
   const fields = useFields()
   const camps = useCamps()
   const plantings = useCurrentPlantings()
+  const groups = useGroups()
+  // "120 animals" on a camp or grazing field.
+  const animalsOn = (id: string) => {
+    const n = (groups.data ?? []).filter((g) => (tab === 'fields' ? g.field_id : g.camp_id) === id).reduce((a, g) => a + g.quantity, 0)
+    return n ? t('nAnimals', { n }) : ''
+  }
 
   const rows = tab === 'fields' ? fields : camps
   const total = (rows.data ?? []).reduce((s, r) => s + (r.hectares ?? 0), 0)
@@ -36,11 +43,13 @@ export function LandPage() {
             return (
               <li key={r.id}>
                 <Link className="row link-row" to={`/land/${tab === 'fields' ? 'field' : 'camp'}/${r.id}`}>
-                  {tab === 'camps' ? <span className="swatch" style={{ background: CAMP_COLOUR }} /> : <CropIcon crop={crop} size={38} />}
+                  {tab === 'camps' || ('use' in r && r.use === 'grazing') ? <span className="swatch" style={{ background: CAMP_COLOUR }} /> : <CropIcon crop={crop} size={38} />}
                   <div className="grow">
                     <div>{r.name} <SampleBadge show={r.is_sample} /></div>
                     <div className="small muted">
-                      {tab === 'fields' ? (crop ? w(crop) : t('noCrop')) : ('pasture_type' in r && r.pasture_type) || ''}
+                      {'use' in r && r.use === 'grazing'
+                        ? [`🐑 ${t('useGrazing')}`, pastureLabel(t, r.pasture_type), animalsOn(r.id)].filter(Boolean).join(' · ')
+                        : tab === 'fields' ? [crop ? w(crop) : t('noCrop'), animalsOn(r.id) && `🐑 ${animalsOn(r.id)}`].filter(Boolean).join(' · ') : [pastureLabel(t, 'pasture_type' in r ? r.pasture_type : null), animalsOn(r.id)].filter(Boolean).join(' · ')}
                       {!r.boundary_geojson && ` · ${t('mapNoOutline')}`}
                     </div>
                   </div>

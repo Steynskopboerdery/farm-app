@@ -5,16 +5,20 @@ import { CropIcon } from '../../components/CropIcon'
 import { ErrorText, numOrNull, textOrNull } from '../../components/ui'
 import { useFarmId } from '../../farm/FarmProvider'
 import { CROP_OPTIONS } from '../../lib/crops'
-import { useI18n, type DictKey } from '../../lib/i18n'
+import { useI18n } from '../../lib/i18n'
 import { useCamps, useFields } from '../../lib/queries'
-import { photoDataUrl, readPhoto, type FieldMapReading } from '../../lib/readPhoto'
+import { photoDataUrl } from '../../lib/readPhoto'
+import { parseMapText } from '../../lib/calc/mapText'
+import { loadOverlay, photoSize, saveOverlay } from '../../lib/mapOverlay'
+import { readText } from '../../lib/ocr'
 import { supabase } from '../../lib/supabase'
-
-export const OVERLAY_KEY = 'farm.mapOverlay'
 
 interface Row { use: boolean; kind: 'field' | 'camp'; name: string; hectares: string; crop: string; notes: string }
 
-/** Photo of an old farm map: read the fields with AI and/or lay it over the satellite map to trace outlines. */
+/**
+ * Photo of an old farm map: read the names and sizes off it (on the phone, free) and/or line it up with the
+ * satellite map to trace the outlines; names read off the photo are then offered when an outline is drawn.
+ */
 export function MapImportPage() {
   const { t, w } = useI18n()
   const farmId = useFarmId()
@@ -27,6 +31,7 @@ export function MapImportPage() {
   const [rows, setRows] = useState<Row[] | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [progress, setProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const existing = new Set([...(fields.data ?? []), ...(camps.data ?? [])].map((x) => x.name.trim().toLowerCase()))
 
@@ -38,18 +43,26 @@ export function MapImportPage() {
     setPreview(await photoDataUrl(f))
   }
 
+  // Keep the photo (and what was read off it) on the phone for lining up and naming outlines.
+  async function keepPhoto(labels?: ReturnType<typeof parseMapText>) {
+    const size = await photoSize(preview!)
+    const before = loadOverlay(farmId)
+    const same = before?.photo === preview
+    return saveOverlay(farmId, { photo: preview!, ...size, t: same ? before!.t : null, labels: labels ?? (same ? before!.labels : []) })
+  }
+
   async function read() {
-    if (!file) return
+    if (!preview) return
     setBusy(true)
+    setProgress(0)
     setError(null)
     try {
-      const r = await readPhoto<FieldMapReading>('fieldmap', farmId, file)
-      const toRow = (kind: 'field' | 'camp') => (a: FieldMapReading['fields'][number]): Row => ({
-        use: !existing.has(a.name.trim().toLowerCase()), kind, name: a.name, hectares: a.hectares != null ? String(a.hectares) : '',
-        crop: a.crop && CROP_OPTIONS.includes(a.crop) ? a.crop : '', notes: a.notes ?? '',
-      })
-      setRows([...r.fields.map(toRow('field')), ...r.camps.map(toRow('camp'))])
-      setNote(`${t(`conf_${r.confidence}` as DictKey)}${r.notes ? ` · ${r.notes}` : ''}`)
+      const labels = parseMapText(await readText(preview, setProgress))
+      await keepPhoto(labels)
+      setRows(labels.map((a): Row => ({
+        use: !existing.has(a.name.trim().toLowerCase()), kind: a.kind, name: a.name, hectares: a.hectares != null ? String(a.hectares) : '', crop: '', notes: '',
+      })))
+      setNote(labels.length ? t('ocrFound', { n: labels.length }) : t('ocrNothing'))
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -77,10 +90,10 @@ export function MapImportPage() {
     },
   })
 
-  function trace() {
+  async function trace() {
     if (!preview) return
-    try { sessionStorage.setItem(OVERLAY_KEY, preview) } catch { setError(t('photoTooBig')); return }
-    navigate('/map?overlay=1')
+    if (!(await keepPhoto())) { setError(t('photoTooBig')); return }
+    navigate('/land/align')
   }
 
   const setRow = (i: number, patch: Partial<Row>) => setRows((rs) => rs!.map((r, k) => (k === i ? { ...r, ...patch } : r)))
@@ -100,9 +113,10 @@ export function MapImportPage() {
 
       {preview && (
         <div className="stack-tight">
-          <button className="btn lime" disabled={busy} onClick={read}>{busy ? t('reading') : `✨ ${t('readMapAi')}`}</button>
-          <button className="btn" onClick={trace}>🗺 {t('traceOnMap')}</button>
-          <p className="tiny muted">{t('aiCostNote')}</p>
+          <button className="btn lime" disabled={busy} onClick={read}>{busy ? `${t('reading')} ${Math.round(progress * 100)}%` : `📖 ${t('ocrRead')}`}</button>
+          <p className="tiny muted">{t('ocrNote')}</p>
+          <button className="btn" onClick={trace}>📐 {t('alignStart')}</button>
+          <p className="tiny muted">{t('alignStartNote')}</p>
         </div>
       )}
       {error && <p className="error">{error}</p>}

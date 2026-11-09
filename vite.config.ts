@@ -42,7 +42,14 @@ export default defineConfig({
         // The app itself always opens offline. Farm data read recently is kept for offline viewing.
         // Satellite tiles are not stored by the app (Esri terms); the browser's normal cache still applies.
         navigateFallback: '/index.html',
+        // The text reader (several MB) is not installed with the app; it is kept after its first use instead.
+        globIgnores: ['tesseract/**'],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/tesseract/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'text-reader', expiration: { maxEntries: 10 } },
+          },
           {
             urlPattern: ({ url, request }) => url.hostname.endsWith('.supabase.co') && url.pathname.startsWith('/rest/v1/') && request.method === 'GET',
             handler: 'NetworkFirst',

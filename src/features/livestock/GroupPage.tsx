@@ -8,7 +8,8 @@ import { ageInMonths } from '../../lib/calc/livestock'
 import { formatDateShort, formatDateTime, formatNumber } from '../../lib/format'
 import { useI18n, type DictKey } from '../../lib/i18n'
 import { useGroupRecords, useGroupTasks } from '../../lib/livestock'
-import { useAuditLog, useCamps, useGroups, useMembers } from '../../lib/queries'
+import { useAuditLog, useGroups, useMembers } from '../../lib/queries'
+import { placeKey, usePlaces } from '../../lib/places'
 import { supabase } from '../../lib/supabase'
 import { updateRow } from '../../lib/outbox'
 import { countdown } from './LivestockCalendar'
@@ -22,7 +23,7 @@ export function GroupPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const groups = useGroups()
-  const camps = useCamps()
+  const { byKey } = usePlaces()
   const records = useGroupRecords(id)
   const tasks = useGroupTasks(id)
   const today = todayIso()
@@ -48,7 +49,7 @@ export function GroupPage() {
   if (groups.isLoading || records.isLoading) return <Loading />
   if (!group) return <div className="page"><p>Not found.</p><Link to="/livestock">{t('back')}</Link></div>
 
-  const camp = camps.data?.find((c) => c.id === group.camp_id)
+  const place = byKey.get(placeKey(group))
   const { events = [], animals = [], breeding = [], shearing = [] } = records.data ?? {}
   const alive = animals.filter((a) => a.status === 'alive')
   const base = `/livestock/group/${group.id}`
@@ -64,7 +65,7 @@ export function GroupPage() {
         <div className="grow">
           <h1>{group.name} {group.is_sample && <span className="badge sample">{t('sample')}</span>}</h1>
           <p className="muted">{[group.breed, w(group.class), w(group.species)].filter(Boolean).join(' · ')}</p>
-          <p className="small">{camp ? <Link to={`/land/camp/${camp.id}`}>📍 {camp.name}</Link> : t('noCamp')}</p>
+          <p className="small">{place ? <Link to={`/land/${place.kind}/${place.id}`}>📍 {place.name}</Link> : t('noCamp')}</p>
         </div>
         <div className="group-count big"><strong>{formatNumber(group.quantity, 0, lang)}</strong><span className="tiny muted">{t('head')}</span></div>
       </section>
@@ -144,7 +145,7 @@ export function GroupPage() {
           <ul className="list">
             {events.slice(0, 30).map((e) => {
               const animal = e.animal_id ? animals.find((a) => a.id === e.animal_id) : null
-              const to = e.to_camp_id ? camps.data?.find((c) => c.id === e.to_camp_id)?.name : null
+              const to = e.to_field_id ? byKey.get(`field:${e.to_field_id}`)?.name : e.to_camp_id ? byKey.get(`camp:${e.to_camp_id}`)?.name : null
               return (
                 <li key={e.id}>
                   <Link className="row link-row" to={`${base}/event/${e.id}`}>
