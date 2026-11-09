@@ -10,11 +10,14 @@ async function run<T>(p: PromiseLike<{ data: T | null; error: { message: string 
   return data as T
 }
 
+/** "Land 2" before "Land 10": names sorted the way people count. */
+const byNumber = <T extends { name: string }>(rows: T[]) => [...rows].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
+
 export function useFields() {
   const farmId = useFarmId()
   return useQuery({
     queryKey: ['fields', farmId],
-    queryFn: () => run(supabase.from('fields').select('*').eq('farm_id', farmId).is('deleted_at', null).order('name')),
+    queryFn: async () => byNumber(await run(supabase.from('fields').select('*').eq('farm_id', farmId).is('deleted_at', null).order('name'))),
   })
 }
 
@@ -22,7 +25,7 @@ export function useCamps() {
   const farmId = useFarmId()
   return useQuery({
     queryKey: ['camps', farmId],
-    queryFn: () => run(supabase.from('camps').select('*').eq('farm_id', farmId).is('deleted_at', null).order('name')),
+    queryFn: async () => byNumber(await run(supabase.from('camps').select('*').eq('farm_id', farmId).is('deleted_at', null).order('name'))),
   })
 }
 

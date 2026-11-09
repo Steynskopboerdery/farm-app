@@ -107,6 +107,9 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
   const [seedTouched, setSeedTouched] = useState(!!existing)
   const thisYear = Number((f.date || todayIso()).slice(0, 4))
   const [season, setSeason] = useState<string>(initialSeason || `new:${thisYear}`)
+  // An existing record can be moved to another field (e.g. after the farm's fields were re-done).
+  const allFields = useFields()
+  const [onField, setOnField] = useState(field.id)
 
   const set = (k: string, val: string) => setF((old) => {
     const next = { ...old, [k]: val }
@@ -136,7 +139,7 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
   useEffect(() => { if (autoFill) fillWeather() })  // eslint-disable-line react-hooks/exhaustive-deps
   const setManual = (k: string, val: string) => setF((old) => ({ ...old, [k]: val, wsource: 'manual' }))
   const warnings = type === 'spray' ? sprayWarnings({ windKmh: numOrNull(f.wind), gustKmh: numOrNull(f.gust), temp: numOrNull(f.temp), humidity: numOrNull(f.hum) }) : []
-  const backTo = `/land/field/${field.id}?season=${season.startsWith('new:') ? '' : season}`
+  const backTo = `/land/field/${onField}?season=${season.startsWith('new:') ? '' : season}`
 
   // Withholding: sprays on this field in this season against the harvest date being entered.
   const seasonSprays = (records.data?.operations ?? [])
@@ -150,7 +153,7 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
       const seasonId = season.startsWith('new:')
         ? await ensureSeason(farmId, seasons.data ?? [], Number(season.slice(4)))
         : season
-      const base = { farm_id: farmId, field_id: field.id, season_id: seasonId, notes: textOrNull(f.notes) }
+      const base = { farm_id: farmId, field_id: onField, season_id: seasonId, notes: textOrNull(f.notes) }
       let error
       if (type === 'planting') {
         const row = {
@@ -258,6 +261,14 @@ function RecordForm({ type, field, seasonId: initialSeason, existing }: {
       <p className="muted">{field.name} · {formatHa(ha, lang)}</p>
 
       <form className="card stack" onSubmit={submit}>
+        {existing && canEdit && (
+          <label>{t('recordOnField')}
+            <select value={onField} onChange={(e) => setOnField(e.target.value)}>
+              {(allFields.data ?? []).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+            </select>
+            {onField !== field.id && <span className="hint">{t('recordMoveHint')}</span>}
+          </label>
+        )}
         <label>{t('season')}
           <select value={season} disabled={!canEdit} onChange={(e) => setSeason(e.target.value)}>
             {!hasThisYear && <option value={`new:${thisYear}`}>{t('newSeason', { year: thisYear })}</option>}
